@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\WinCleaner.Core\WinCleaner.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WinCleaner.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 규칙을 프로그램 안에 넣어, 관리자 권한으로 도는 앱이 바깥 파일을 읽고 지울 대상을 바꾸는 일이 없게 한다 -->
+    <EmbeddedResource Include="..\..\rules\cleanup-rules.json" LogicalName="cleanup-rules.json" />
+  </ItemGroup>
+
+</Project>

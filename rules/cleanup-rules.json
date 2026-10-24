@@ -1,0 +1,121 @@
+{
+  // 디스크 청소 규칙 (사양서 3.1). 빌드할 때 프로그램 안에 포함되므로 실행 중에는 바꿀 수 없다.
+  //
+  // path          폴더 경로. 환경 변수(%TEMP% 등)와 폴더 이름의 * 를 쓸 수 있다.
+  // pattern       파일 이름 패턴 (기본값 *)
+  // recursive     하위 폴더까지 찾을지 (기본값 true)
+  // minAgeHours   마지막으로 수정한 뒤 이 시간이 지난 파일만 정리한다 (기본값 0)
+  // skipIfRunning 이 프로그램이 실행 중이면 규칙 전체를 건너뛴다
+  "rules": [
+    {
+      "id": "temp.user",
+      "name": "사용자 임시 파일",
+      "description": "프로그램이 쓰고 남긴 임시 파일 (하루 이상 지난 것만)",
+      "category": "시스템",
+      "risk": "Low",
+      "minAgeHours": 24,
+      "targets": [
+        { "path": "%TEMP%" }
+      ]
+    },
+    {
+      "id": "temp.system",
+      "name": "Windows 임시 파일",
+      "description": "Windows와 설치 프로그램이 남긴 임시 파일 (하루 이상 지난 것만)",
+      "category": "시스템",
+      "risk": "Low",
+      "requiresElevation": true,
+      "minAgeHours": 24,
+      "targets": [
+        { "path": "%SystemRoot%\\Temp" }
+      ]
+    },
+    {
+      "id": "wu.download",
+      "name": "Windows Update 다운로드 파일",
+      "description": "설치가 끝난 업데이트의 설치 파일 (7일 이상 지난 것만, 필요하면 Windows가 다시 받음)",
+      "category": "시스템",
+      "risk": "Low",
+      "requiresElevation": true,
+      "minAgeHours": 168,
+      "targets": [
+        { "path": "%SystemRoot%\\SoftwareDistribution\\Download" }
+      ]
+    },
+    {
+      "id": "dumps",
+      "name": "메모리 덤프",
+      "description": "프로그램이나 Windows가 비정상 종료될 때 남긴 진단 파일",
+      "category": "시스템",
+      "risk": "Low",
+      "requiresElevation": true,
+      "targets": [
+        { "path": "%SystemRoot%\\Minidump", "pattern": "*.dmp" },
+        { "path": "%SystemRoot%", "pattern": "MEMORY.DMP", "recursive": false },
+        { "path": "%SystemRoot%\\LiveKernelReports", "pattern": "*.dmp" },
+        { "path": "%LOCALAPPDATA%\\CrashDumps", "pattern": "*.dmp" }
+      ]
+    },
+    {
+      "id": "wer",
+      "name": "Windows 오류 보고서",
+      "description": "Microsoft에 보냈거나 보내려고 모아 둔 오류 보고서",
+      "category": "시스템",
+      "risk": "Low",
+      "requiresElevation": true,
+      "targets": [
+        { "path": "%LOCALAPPDATA%\\Microsoft\\Windows\\WER" },
+        { "path": "%ProgramData%\\Microsoft\\Windows\\WER\\ReportArchive" },
+        { "path": "%ProgramData%\\Microsoft\\Windows\\WER\\ReportQueue" },
+        { "path": "%ProgramData%\\Microsoft\\Windows\\WER\\Temp" }
+      ]
+    },
+    {
+      "id": "thumbcache",
+      "name": "썸네일 캐시",
+      "description": "탐색기가 그림 미리보기용으로 저장한 파일 (필요하면 다시 만듦)",
+      "category": "시스템",
+      "risk": "Low",
+      "targets": [
+        { "path": "%LOCALAPPDATA%\\Microsoft\\Windows\\Explorer", "pattern": "thumbcache_*.db", "recursive": false }
+      ]
+    },
+    {
+      "id": "browser.chrome",
+      "name": "Chrome 캐시",
+      "description": "웹 페이지를 빨리 열려고 저장해 둔 파일. 쿠키·비밀번호·방문 기록은 지우지 않음",
+      "category": "브라우저",
+      "risk": "Low",
+      "skipIfRunning": [ "chrome" ],
+      "targets": [
+        { "path": "%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Cache" },
+        { "path": "%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Code Cache" },
+        { "path": "%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\GPUCache" }
+      ]
+    },
+    {
+      "id": "browser.edge",
+      "name": "Edge 캐시",
+      "description": "웹 페이지를 빨리 열려고 저장해 둔 파일. 쿠키·비밀번호·방문 기록은 지우지 않음",
+      "category": "브라우저",
+      "risk": "Low",
+      "skipIfRunning": [ "msedge" ],
+      "targets": [
+        { "path": "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Cache" },
+        { "path": "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Code Cache" },
+        { "path": "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\GPUCache" }
+      ]
+    },
+    {
+      "id": "browser.firefox",
+      "name": "Firefox 캐시",
+      "description": "웹 페이지를 빨리 열려고 저장해 둔 파일. 쿠키·비밀번호·방문 기록은 지우지 않음",
+      "category": "브라우저",
+      "risk": "Low",
+      "skipIfRunning": [ "firefox" ],
+      "targets": [
+        { "path": "%LOCALAPPDATA%\\Mozilla\\Firefox\\Profiles\\*\\cache2" }
+      ]
+    }
+  ]
+}

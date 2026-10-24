@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WinCleaner.App/WinCleaner.App.csproj" />
+    <Project Path="src/WinCleaner.Cleaning/WinCleaner.Cleaning.csproj" />
+    <Project Path="src/WinCleaner.Core/WinCleaner.Core.csproj" />
+    <Project Path="src/WinCleaner.Memory/WinCleaner.Memory.csproj" />
+    <Project Path="src/WinCleaner.Optimizer/WinCleaner.Optimizer.csproj" />
+    <Project Path="src/WinCleaner.Safety/WinCleaner.Safety.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WinCleaner.Tests/WinCleaner.Tests.csproj" />
+  </Folder>
+</Solution>

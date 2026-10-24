@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <!-- 앱 뷰모델 테스트용 -->
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <!-- UseWPF가 켜지면 System.IO가 기본 using에서 빠진다 -->
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WinCleaner.App\WinCleaner.App.csproj" />
+    <ProjectReference Include="..\..\src\WinCleaner.Core\WinCleaner.Core.csproj" />
+    <ProjectReference Include="..\..\src\WinCleaner.Cleaning\WinCleaner.Cleaning.csproj" />
+    <ProjectReference Include="..\..\src\WinCleaner.Memory\WinCleaner.Memory.csproj" />
+    <ProjectReference Include="..\..\src\WinCleaner.Optimizer\WinCleaner.Optimizer.csproj" />
+    <ProjectReference Include="..\..\src\WinCleaner.Safety\WinCleaner.Safety.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,144 @@
+<UserControl x:Class="WinCleaner.App.Views.CleaningView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel>
+
+        <!-- 제목 -->
+        <DockPanel DockPanel.Dock="Top" Margin="32,28,32,8">
+            <Grid DockPanel.Dock="Right" VerticalAlignment="Center" Margin="16,0,0,0">
+                <Button Content="스캔" MinWidth="96" Command="{Binding ScanCommand}"
+                        Style="{StaticResource PrimaryButton}" AutomationProperties.AutomationId="ScanButton"
+                        Visibility="{Binding IsIdle, Converter={StaticResource BoolToVisibility}}" />
+                <Button Content="취소" MinWidth="96" Command="{Binding CancelCommand}"
+                        Style="{StaticResource SecondaryButton}" AutomationProperties.AutomationId="CancelButton"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+            </Grid>
+            <StackPanel>
+                <TextBlock Text="디스크 청소" Style="{StaticResource PageTitle}" />
+                <TextBlock Text="{Binding StatusText}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
+                           Margin="0,4,0,0" AutomationProperties.AutomationId="StatusText" />
+            </StackPanel>
+        </DockPanel>
+
+        <ProgressBar DockPanel.Dock="Top" IsIndeterminate="True" Height="3" Margin="32,6,32,0"
+                     Foreground="{StaticResource AccentBrush}" Background="Transparent" BorderThickness="0"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+
+        <!-- 정리 결과. 템플릿은 내용이 비어도 그려지므로 결과가 있을 때만 보인다. -->
+        <ContentControl DockPanel.Dock="Top" Content="{Binding Summary}" Focusable="False" Margin="32,8,32,0"
+                        Visibility="{Binding HasSummary, Converter={StaticResource BoolToVisibility}}">
+            <ContentControl.ContentTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource Card}" BorderBrush="{StaticResource SuccessBrush}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="기록 보기" VerticalAlignment="Center" Margin="16,0,0,0"
+                                    Command="{Binding DataContext.OpenLogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Visibility="{Binding HasLog, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBlock Text="&#xE73E;" FontFamily="{StaticResource IconFont}" FontSize="22"
+                                       Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center" Margin="0,0,16,0" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{Binding Detail}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
+                                           Margin="0,4,0,0" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </DataTemplate>
+            </ContentControl.ContentTemplate>
+        </ContentControl>
+
+        <!-- 아래 고정 막대 -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="0,1,0,0" Padding="32,14">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="선택 항목 정리" Command="{Binding CleanCommand}"
+                        Style="{StaticResource PrimaryButton}" AutomationProperties.AutomationId="CleanButton" />
+                <TextBlock Text="{Binding SelectedText}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+            </DockPanel>
+        </Border>
+
+        <!-- 규칙 목록 -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+            <ItemsControl ItemsSource="{Binding Groups}" IsEnabled="{Binding IsIdle}" Margin="32,0,32,16">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0,12,0,8">
+                            <TextBlock Text="{Binding Name}" Style="{StaticResource SectionTitle}" Margin="0,0,0,10" />
+                            <Border Style="{StaticResource Card}" Padding="0">
+                                <ItemsControl ItemsSource="{Binding Rules}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border x:Name="Row" Padding="20,14"
+                                                    BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="0,1,0,0">
+                                                <StackPanel>
+                                                    <DockPanel>
+                                                        <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" Margin="16,0,0,0">
+                                                            <TextBlock Text="{Binding FoundText}" FontSize="13" FontWeight="SemiBold"
+                                                                       HorizontalAlignment="Right"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                                            <TextBlock Text="{Binding CleanedText}" FontSize="13" HorizontalAlignment="Right"
+                                                                       Foreground="{StaticResource SuccessBrush}" />
+                                                        </StackPanel>
+                                                        <CheckBox IsChecked="{Binding IsSelected}" IsEnabled="{Binding CanClean}"
+                                                                  VerticalAlignment="Top" Margin="0,3,12,0" />
+                                                        <StackPanel>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"
+                                                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                                                                <Border Background="{StaticResource BadgeBrush}" CornerRadius="4" Padding="6,1"
+                                                                        Margin="8,0,0,0" VerticalAlignment="Center"
+                                                                        Visibility="{Binding RequiresElevation, Converter={StaticResource BoolToVisibility}}">
+                                                                    <TextBlock Text="관리자" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                                </Border>
+                                                                <Border Background="{StaticResource CautionBackgroundBrush}" CornerRadius="4" Padding="6,1"
+                                                                        Margin="6,0,0,0" VerticalAlignment="Center"
+                                                                        Visibility="{Binding IsCaution, Converter={StaticResource BoolToVisibility}}">
+                                                                    <TextBlock Text="주의 · 기본 선택 안 함" FontSize="11" Foreground="{StaticResource WarningTextBrush}" />
+                                                                </Border>
+                                                            </StackPanel>
+                                                            <TextBlock Text="{Binding Description}" Style="{StaticResource SecondaryText}"
+                                                                       TextWrapping="Wrap" Margin="0,3,0,0" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+
+                                                    <TextBlock Text="{Binding WarningText}" FontSize="12" TextWrapping="Wrap" Margin="26,8,0,0"
+                                                               Foreground="{StaticResource WarningTextBrush}"
+                                                               Visibility="{Binding HasWarning, Converter={StaticResource BoolToVisibility}}" />
+
+                                                    <Expander Header="{Binding PreviewHeader}" FontSize="12" Margin="26,8,0,0"
+                                                              Foreground="{StaticResource TextSecondaryBrush}"
+                                                              Visibility="{Binding HasPreview, Converter={StaticResource BoolToVisibility}}">
+                                                        <ItemsControl ItemsSource="{Binding PreviewItems}" Margin="20,6,0,0">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <DockPanel Margin="0,2">
+                                                                        <TextBlock DockPanel.Dock="Right" Text="{Binding SizeText}" Margin="12,0,0,0"
+                                                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                                                        <TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis"
+                                                                                   ToolTip="{Binding Path}" Foreground="{StaticResource TextPrimaryBrush}" />
+                                                                    </DockPanel>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </Expander>
+                                                </StackPanel>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <!-- 첫 줄은 위쪽 구분선을 없앤다 -->
+                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}" Value="{x:Null}">
+                                                    <Setter TargetName="Row" Property="BorderThickness" Value="0" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

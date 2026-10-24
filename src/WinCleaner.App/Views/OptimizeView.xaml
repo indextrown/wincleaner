@@ -1,0 +1,201 @@
+<UserControl x:Class="WinCleaner.App.Views.OptimizeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="32,28,32,24">
+
+        <!-- 제목과 탭 -->
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Text="최적화" Style="{StaticResource PageTitle}" />
+            <TextBlock Text="{Binding StatusText}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0"
+                       AutomationProperties.AutomationId="StatusText" />
+            <ProgressBar IsIndeterminate="True" Height="3" Margin="0,10,0,0"
+                         Foreground="{StaticResource AccentBrush}" Background="Transparent" BorderThickness="0"
+                         Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+            <StackPanel Orientation="Horizontal" Margin="0,14,0,12">
+                <RadioButton Content="시작 프로그램" GroupName="OptimizeTab" IsChecked="{Binding IsStartupTab}"
+                             Style="{StaticResource TabButton}" AutomationProperties.AutomationId="StartupTab" />
+                <RadioButton Content="설정" GroupName="OptimizeTab" IsChecked="{Binding IsSettingsTab}"
+                             Style="{StaticResource TabButton}" AutomationProperties.AutomationId="SettingsTab" />
+                <RadioButton Content="드라이브" GroupName="OptimizeTab" IsChecked="{Binding IsDrivesTab}"
+                             Style="{StaticResource TabButton}" AutomationProperties.AutomationId="DrivesTab" />
+            </StackPanel>
+        </StackPanel>
+
+        <Grid>
+            <!-- 시작 프로그램 -->
+            <DockPanel Visibility="{Binding IsStartupTab, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock DockPanel.Dock="Top" Text="{Binding StartupSummary}" Style="{StaticResource SecondaryText}"
+                           TextWrapping="Wrap" Margin="0,0,0,10" />
+                <Border Style="{StaticResource Card}" Padding="0">
+                    <ListBox ItemsSource="{Binding StartupItems}" ItemContainerStyle="{StaticResource PlainListItem}"
+                             Background="Transparent" BorderThickness="0" IsEnabled="{Binding IsIdle}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.ScrollUnit="Pixel"
+                             AutomationProperties.AutomationId="StartupList">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="56" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock Text="{Binding DisplayName}" FontSize="14" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock Text="{Binding Details}" FontSize="12" Margin="0,2,0,0"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <TextBlock Text="{Binding Command}" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding Command}" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <TextBlock Text="{Binding WarningText}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"
+                                                   Foreground="{StaticResource WarningTextBrush}"
+                                                   Visibility="{Binding HasWarning, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding StateText}" FontSize="13" VerticalAlignment="Center"
+                                               HorizontalAlignment="Right" Margin="0,0,12,0"
+                                               Foreground="{StaticResource TextSecondaryBrush}" />
+                                    <Button Grid.Column="2" Style="{StaticResource SwitchButton}" Tag="{Binding IsOn}"
+                                            IsEnabled="{Binding CanChange}" VerticalAlignment="Center"
+                                            AutomationProperties.Name="{Binding DisplayName}"
+                                            Command="{Binding DataContext.ToggleStartupCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+            </DockPanel>
+
+            <!-- 설정 -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsSettingsTab, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <CheckBox Content="'주의' 항목을 바꾸기 전에 시스템 복원 지점 만들기 (권장)" IsChecked="{Binding CreateRestorePoint}"
+                              IsEnabled="{Binding IsIdle}" FontSize="13" Margin="0,0,0,14"
+                              Foreground="{StaticResource TextPrimaryBrush}" />
+
+                    <!-- 전원 관리 옵션 -->
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="전원 관리 옵션" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       Text="고성능 계열은 CPU를 늘 빠르게 돌려 반응이 빨라지지만 전기를 더 씁니다. 노트북은 '균형 조정'을 권장합니다." />
+                            <TextBlock Text="{Binding PowerStatusText}" FontSize="13" FontWeight="SemiBold" Margin="0,10,0,0"
+                                       Foreground="{StaticResource TextPrimaryBrush}" AutomationProperties.AutomationId="PowerStatus" />
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <ComboBox ItemsSource="{Binding PowerSchemes}" SelectedItem="{Binding SelectedPowerScheme}"
+                                          DisplayMemberPath="Name" MinWidth="220" Height="32" VerticalContentAlignment="Center"
+                                          IsEnabled="{Binding IsIdle}" />
+                                <Button Content="바꾸기" Command="{Binding ChangePowerPlanCommand}" Style="{StaticResource PrimaryButton}"
+                                        Margin="10,0,0,0" IsEnabled="{Binding IsIdle}" />
+                                <Button Content="이전으로 되돌리기" Command="{Binding RevertPowerPlanCommand}"
+                                        Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"
+                                        Visibility="{Binding CanRevertPowerPlan, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 시각 효과·최대 절전 -->
+                    <ItemsControl ItemsSource="{Binding Tweaks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="{Binding ActionText}" MinWidth="96" VerticalAlignment="Center"
+                                                Margin="16,0,0,0" Style="{StaticResource PrimaryButton}" IsEnabled="{Binding CanChange}"
+                                                Command="{Binding DataContext.ToggleTweakCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}" AutomationProperties.AutomationId="TweakButton" />
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                                                <Border Background="{StaticResource BadgeBrush}" CornerRadius="4" Padding="6,1" Margin="8,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        Visibility="{Binding RequiresElevation, Converter={StaticResource BoolToVisibility}}">
+                                                    <TextBlock Text="관리자" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                </Border>
+                                                <Border Background="{StaticResource CautionBackgroundBrush}" CornerRadius="4" Padding="6,1"
+                                                        Margin="6,0,0,0" VerticalAlignment="Center"
+                                                        Visibility="{Binding IsCaution, Converter={StaticResource BoolToVisibility}}">
+                                                    <TextBlock Text="주의" FontSize="11" Foreground="{StaticResource WarningTextBrush}" />
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Description}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
+                                                       Margin="0,6,0,0" />
+                                            <TextBlock Margin="0,10,0,0" FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}" AutomationProperties.AutomationId="TweakStatus">
+                                                <Run Text="현재 상태: " /><Run Text="{Binding StatusText, Mode=OneWay}" />
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding WarningText}" FontSize="12" Margin="0,6,0,0"
+                                                       Foreground="{StaticResource WarningTextBrush}"
+                                                       Visibility="{Binding HasWarning, Converter={StaticResource BoolToVisibility}}" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- 드라이브 -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsDrivesTab, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,0,0,12"
+                               Text="Windows는 매주 자동으로 드라이브를 최적화합니다. 여기서는 드라이브 종류와 건강 상태를 확인하고 지금 바로 최적화할 수 있습니다." />
+                    <ItemsControl ItemsSource="{Binding DriveItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                                    <DockPanel>
+                                        <Grid DockPanel.Dock="Right" VerticalAlignment="Center" Margin="16,0,0,0">
+                                            <Button Content="{Binding ActionText}" MinWidth="104" Style="{StaticResource PrimaryButton}"
+                                                    IsEnabled="{Binding CanOptimize}"
+                                                    Visibility="{Binding IsIdle, Converter={StaticResource BoolToVisibility}}"
+                                                    Command="{Binding DataContext.OptimizeDriveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}" />
+                                            <Button Content="취소" MinWidth="104" Style="{StaticResource SecondaryButton}"
+                                                    Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}"
+                                                    Command="{Binding DataContext.OptimizeDriveCancelCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                        </Grid>
+                                        <TextBlock Text="&#xEDA2;" FontFamily="{StaticResource IconFont}" FontSize="22"
+                                                   Foreground="{StaticResource AccentBrush}" VerticalAlignment="Top" Margin="0,2,16,0" />
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}" AutomationProperties.AutomationId="DriveTitle" />
+                                            <TextBlock FontSize="13" Margin="0,4,0,0" Foreground="{StaticResource TextPrimaryBrush}">
+                                                <Run Text="{Binding MediaText, Mode=OneWay}" /><Run Text="  ·  " /><Run x:Name="Health" Text="{Binding HealthText, Mode=OneWay}" />
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding Explanation}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
+                                                       Margin="0,6,0,0" />
+                                            <TextBlock Text="{Binding ProgressText}" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                                                       Foreground="{StaticResource HintBrush}" />
+                                            <TextBlock Text="관리자 권한으로 실행해야 최적화할 수 있습니다." FontSize="12" Margin="0,6,0,0"
+                                                       Foreground="{StaticResource WarningTextBrush}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CanOptimize}" Value="False">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsHealthProblem}" Value="True">
+                                        <Setter TargetName="Health" Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</UserControl>

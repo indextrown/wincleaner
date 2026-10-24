@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>WinCleaner</AssemblyName>
+    <RootNamespace>WinCleaner.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WinCleaner.Core\WinCleaner.Core.csproj" />
+    <ProjectReference Include="..\WinCleaner.Cleaning\WinCleaner.Cleaning.csproj" />
+    <ProjectReference Include="..\WinCleaner.Memory\WinCleaner.Memory.csproj" />
+    <ProjectReference Include="..\WinCleaner.Optimizer\WinCleaner.Optimizer.csproj" />
+    <ProjectReference Include="..\WinCleaner.Safety\WinCleaner.Safety.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+</Project>

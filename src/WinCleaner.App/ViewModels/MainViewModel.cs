@@ -1,0 +1,84 @@
+using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using WinCleaner.App.Services;
+using WinCleaner.Cleaning;
+using WinCleaner.Core.Platform;
+using WinCleaner.Optimizer;
+using WinCleaner.Optimizer.Drives;
+using WinCleaner.Optimizer.Startup;
+using WinCleaner.Safety;
+
+namespace WinCleaner.App.ViewModels;
+
+public sealed record NavigationItem(string Title, string Glyph, object Page);
+
+public partial class MainViewModel : ObservableObject
+{
+    [ObservableProperty]
+    private NavigationItem? _selectedItem;
+
+    public MainViewModel()
+    {
+        var isElevated = Elevation.IsElevated;
+        var dialogs = new WpfUserDialogs();
+        var journal = new ChangeJournal(ChangeJournal.DefaultPath);
+        var restorePoints = new WmiRestorePointService(isElevated);
+        var runner = new TweakRunner(journal, restorePoints, dialogs);
+        var catalog = new TweakCatalog(
+            [new VisualEffectsTweak(), new HibernationTweak()], new RegistryStartupStore(), new PowrProfSchemes());
+
+        var cleaning = new NavigationItem("디스크 청소", "", new CleaningViewModel(
+            RuleCatalog.CreateBuiltInRules(), dialogs, isElevated, CleanupLog.DefaultDirectory, journal));
+
+        NavigationItems =
+        [
+            new NavigationItem("대시보드", "", new DashboardViewModel(() => SelectedItem = cleaning)),
+            cleaning,
+            new NavigationItem("용량 분석", "", new DiskUsageViewModel(
+                DiskUsageViewModel.FixedDrives(), dialogs, isElevated)),
+            new NavigationItem("최적화", "", new OptimizeViewModel(
+                catalog, new DriveMaintenance(), runner, dialogs, isElevated)),
+            new NavigationItem("메모리", "", new PlaceholderViewModel("메모리", 5,
+            [
+                "프로세스별 메모리 사용량 실시간 표시",
+                "선택한 프로세스의 작업 집합 비우기",
+                "대기 목록 비우기 (관리자)",
+            ])),
+            new NavigationItem("기록", "", new HistoryViewModel(
+                journal, runner, catalog, restorePoints, dialogs, isElevated)),
+        ];
+
+        SelectedItem = NavigationItems[0];
+    }
+
+    public IReadOnlyList<NavigationItem> NavigationItems { get; }
+
+    public bool ShowElevationWarning => !Elevation.IsElevated;
+
+    public string VersionText { get; } = $"v{typeof(MainViewModel).Assembly.GetName().Version?.ToString(3)}";
+
+    // 다른 화면에서 바꾼 결과가 바로 보이도록 화면에 들어올 때마다 다시 읽는다.
+    partial void OnSelectedItemChanged(NavigationItem? value)
+    {
+        switch (value?.Page)
+        {
+            case DashboardViewModel dashboard:
+                dashboard.RefreshCommand.Execute(null);
+                break;
+            case OptimizeViewModel optimize:
+                optimize.RefreshCommand.Execute(null);
+                break;
+            case HistoryViewModel history:
+                history.RefreshRestorePointsCommand.Execute(null);
+                break;
+        }
+    }
+
+    [RelayCommand]
+    private void RestartElevated()
+    {
+        if (Elevation.TryRestartElevated())
+            Application.Current.Shutdown();
+    }
+}

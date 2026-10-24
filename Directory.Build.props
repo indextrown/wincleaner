@@ -1,0 +1,11 @@
+<Project>
+  <!-- 모든 프로젝트 공통 설정 -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Version>0.1.0</Version>
+    <Product>WinCleaner</Product>
+  </PropertyGroup>
+</Project>
