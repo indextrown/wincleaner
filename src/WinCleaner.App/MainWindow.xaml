@@ -28,8 +28,8 @@
         <DataTemplate DataType="{x:Type vm:HistoryViewModel}">
             <views:HistoryView />
         </DataTemplate>
-        <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
-            <views:PlaceholderView />
+        <DataTemplate DataType="{x:Type vm:MemoryViewModel}">
+            <views:MemoryView />
         </DataTemplate>
     </Window.Resources>
 

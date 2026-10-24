@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using WinCleaner.App.Services;
 using WinCleaner.Cleaning;
 using WinCleaner.Core.Platform;
+using WinCleaner.Memory;
 using WinCleaner.Optimizer;
 using WinCleaner.Optimizer.Drives;
 using WinCleaner.Optimizer.Startup;
@@ -39,12 +40,8 @@ public partial class MainViewModel : ObservableObject
                 DiskUsageViewModel.FixedDrives(), dialogs, isElevated)),
             new NavigationItem("최적화", "", new OptimizeViewModel(
                 catalog, new DriveMaintenance(), runner, dialogs, isElevated)),
-            new NavigationItem("메모리", "", new PlaceholderViewModel("메모리", 5,
-            [
-                "프로세스별 메모리 사용량 실시간 표시",
-                "선택한 프로세스의 작업 집합 비우기",
-                "대기 목록 비우기 (관리자)",
-            ])),
+            new NavigationItem("메모리", "", new MemoryViewModel(
+                new WindowsMemoryService(), dialogs, journal, isElevated)),
             new NavigationItem("기록", "", new HistoryViewModel(
                 journal, runner, catalog, restorePoints, dialogs, isElevated)),
         ];
@@ -59,10 +56,17 @@ public partial class MainViewModel : ObservableObject
     public string VersionText { get; } = $"v{typeof(MainViewModel).Assembly.GetName().Version?.ToString(3)}";
 
     // 다른 화면에서 바꾼 결과가 바로 보이도록 화면에 들어올 때마다 다시 읽는다.
-    partial void OnSelectedItemChanged(NavigationItem? value)
+    partial void OnSelectedItemChanged(NavigationItem? oldValue, NavigationItem? newValue)
     {
-        switch (value?.Page)
+        // 메모리 화면은 보이는 동안에만 주기적으로 다시 읽는다.
+        if (oldValue?.Page is MemoryViewModel previous)
+            previous.Deactivate();
+
+        switch (newValue?.Page)
         {
+            case MemoryViewModel memory:
+                memory.Activate();
+                break;
             case DashboardViewModel dashboard:
                 dashboard.RefreshCommand.Execute(null);
                 break;

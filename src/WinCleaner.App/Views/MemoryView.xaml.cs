@@ -2,9 +2,9 @@ using System.Windows.Controls;
 
 namespace WinCleaner.App.Views;
 
-public partial class PlaceholderView : UserControl
+public partial class MemoryView : UserControl
 {
-    public PlaceholderView()
+    public MemoryView()
     {
         InitializeComponent();
     }
