@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Interop;
+using WinCleaner.Cleaning.Analysis;
 
 namespace WinCleaner.App.Services;
 
@@ -13,6 +15,9 @@ public interface IUserDialogs
 
     /// <summary>파일이면 그 파일을 선택한 채로, 폴더면 그 폴더를 탐색기로 연다.</summary>
     void ShowInExplorer(string path);
+
+    /// <summary>파일이나 폴더를 휴지통으로 보낸다. 실패하거나 사용자가 Windows 창에서 취소하면 false와 이유.</summary>
+    bool MoveToRecycleBin(string path, out string? error);
 }
 
 public sealed class WpfUserDialogs : IUserDialogs
@@ -28,4 +33,7 @@ public sealed class WpfUserDialogs : IUserDialogs
         var arguments = File.Exists(path) ? $"/select,\"{path}\"" : $"\"{path}\"";
         Process.Start(new ProcessStartInfo("explorer.exe", arguments) { UseShellExecute = true });
     }
+
+    public bool MoveToRecycleBin(string path, out string? error) =>
+        ShellRecycleBin.Send(path, new WindowInteropHelper(Application.Current.MainWindow).Handle, out error);
 }

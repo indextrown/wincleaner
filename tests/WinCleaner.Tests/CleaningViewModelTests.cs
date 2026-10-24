@@ -146,6 +146,12 @@ public sealed class CleaningViewModelTests : IDisposable
         public void ShowInExplorer(string path)
         {
         }
+
+        public bool MoveToRecycleBin(string path, out string? error)
+        {
+            error = null;
+            return false;
+        }
     }
 
     private sealed class FakeRule(string id, long bytes, RiskLevel risk = RiskLevel.Low, bool requiresElevation = false)

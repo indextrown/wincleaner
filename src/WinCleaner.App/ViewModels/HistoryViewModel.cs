@@ -161,6 +161,8 @@ public sealed class HistoryEntryViewModel(ChangeEntry entry, bool canRevert)
         ChangeKind.Tweak => "설정 변경",
         ChangeKind.Revert => "되돌림",
         ChangeKind.Maintenance => "유지 관리",
+        ChangeKind.Recycled => "휴지통으로 보냄",
+        ChangeKind.Uninstalled => "프로그램 제거",
         _ => "복원 지점",
     };
 
@@ -170,6 +172,7 @@ public sealed class HistoryEntryViewModel(ChangeEntry entry, bool canRevert)
         ChangeKind.Tweak => "",
         ChangeKind.Revert => "",
         ChangeKind.Maintenance => "",
+        ChangeKind.Recycled => "",
         _ => "",
     };
 
@@ -178,6 +181,8 @@ public sealed class HistoryEntryViewModel(ChangeEntry entry, bool canRevert)
         ChangeKind.Cleanup => "되돌릴 수 없음 (파일을 바로 삭제함)",
         ChangeKind.Tweak when entry.RevertedAt is { } at => $"{at:yyyy-MM-dd HH:mm}에 되돌림",
         ChangeKind.Tweak => "적용됨",
+        ChangeKind.Recycled => "휴지통에서 되살릴 수 있음",
+        ChangeKind.Uninstalled => "되돌리려면 다시 설치해야 함",
         _ => "",
     };
 }

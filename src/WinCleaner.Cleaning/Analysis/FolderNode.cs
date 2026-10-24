@@ -35,6 +35,49 @@ public sealed class FolderNode
     // 폴더가 수십만 개일 수 있어 경로는 저장하지 않고 필요할 때 만든다.
     public string FullPath => Parent is null ? Name : Path.Join(Parent.FullPath, Name);
 
+    /// <summary>경로로 하위 폴더를 찾는다. 이 폴더 아래가 아니거나 없으면 null.</summary>
+    public FolderNode? Find(string fullPath)
+    {
+        var target = Path.TrimEndingDirectorySeparator(fullPath);
+        var current = this;
+        while (!string.Equals(current.FullPath, target, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!PathGuard.IsUnder(target, current.FullPath))
+                return null;
+            var next = current.Children.FirstOrDefault(c =>
+                string.Equals(c.FullPath, target, StringComparison.OrdinalIgnoreCase) || PathGuard.IsUnder(target, c.FullPath));
+            if (next is null)
+                return null;
+            current = next;
+        }
+        return current;
+    }
+
+    /// <summary>지운 하위 폴더를 빼고, 이 폴더부터 맨 위까지 크기를 줄인다. 다시 분석하지 않아도 화면이 맞게 보이도록 한다.</summary>
+    public void RemoveChild(FolderNode child)
+    {
+        if (_children is null || !_children.Remove(child))
+            return;
+        Subtract(child.SizeBytes, child.FileCount);
+    }
+
+    /// <summary>이 폴더에 바로 있던 파일 하나를 지웠을 때 크기를 줄인다.</summary>
+    public void RemoveOwnFile(long sizeBytes)
+    {
+        OwnFilesBytes = Math.Max(0, OwnFilesBytes - sizeBytes);
+        OwnFileCount = Math.Max(0, OwnFileCount - 1);
+        Subtract(sizeBytes, 1);
+    }
+
+    private void Subtract(long bytes, long files)
+    {
+        for (var folder = this; folder is not null; folder = folder.Parent)
+        {
+            folder.SizeBytes = Math.Max(0, folder.SizeBytes - bytes);
+            folder.FileCount = Math.Max(0, folder.FileCount - files);
+        }
+    }
+
     internal FolderNode AddChild(string name)
     {
         var child = new FolderNode(name, this);

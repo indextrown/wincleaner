@@ -343,5 +343,11 @@ public sealed class SafeChangeTests : IDisposable
         public void ShowInExplorer(string path)
         {
         }
+
+        public bool MoveToRecycleBin(string path, out string? error)
+        {
+            error = null;
+            return false;
+        }
     }
 }

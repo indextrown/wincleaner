@@ -19,6 +19,12 @@ public enum ChangeKind
 
     /// <summary>드라이브 최적화 같은 유지 관리 작업. 되돌릴 대상이 없다.</summary>
     Maintenance,
+
+    /// <summary>용량 분석 화면에서 휴지통으로 보냄. 휴지통에서 되살릴 수 있다.</summary>
+    Recycled,
+
+    /// <summary>프로그램 제거. 되돌리려면 다시 설치해야 한다.</summary>
+    Uninstalled,
 }
 
 public sealed record ChangeEntry

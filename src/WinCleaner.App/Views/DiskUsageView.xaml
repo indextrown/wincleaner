@@ -127,6 +127,7 @@
                                             <ColumnDefinition Width="90" />
                                             <ColumnDefinition Width="60" />
                                             <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="40" />
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="16"
@@ -157,6 +158,12 @@
                                                 Visibility="{Binding HasPath, Converter={StaticResource BoolToVisibility}}"
                                                 Command="{Binding DataContext.ShowInExplorerCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                 CommandParameter="{Binding Path}" />
+                                        <Button Grid.Column="6" Content="&#xE74D;" Style="{StaticResource IconButton}"
+                                                HorizontalAlignment="Right" ToolTip="{Binding DeleteToolTip}" ToolTipService.ShowOnDisabled="True"
+                                                IsEnabled="{Binding CanDelete}" AutomationProperties.AutomationId="DeleteFolderButton"
+                                                Visibility="{Binding ShowDelete, Converter={StaticResource BoolToVisibility}}"
+                                                Command="{Binding DataContext.DeleteFolderCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                CommandParameter="{Binding}" />
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -179,6 +186,7 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="100" />
                                         <ColumnDefinition Width="90" />
+                                        <ColumnDefinition Width="40" />
                                         <ColumnDefinition Width="40" />
                                     </Grid.ColumnDefinitions>
 
@@ -205,6 +213,11 @@
                                             HorizontalAlignment="Right" ToolTip="탐색기에서 위치 열기"
                                             Command="{Binding DataContext.ShowInExplorerCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                             CommandParameter="{Binding Path}" />
+                                    <Button Grid.Column="5" Content="&#xE74D;" Style="{StaticResource IconButton}"
+                                            HorizontalAlignment="Right" ToolTip="{Binding DeleteToolTip}" ToolTipService.ShowOnDisabled="True"
+                                            IsEnabled="{Binding CanDelete}" AutomationProperties.AutomationId="DeleteFileButton"
+                                            Command="{Binding DataContext.DeleteFileCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            CommandParameter="{Binding}" />
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

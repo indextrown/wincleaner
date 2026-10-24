@@ -7,6 +7,7 @@ using WinCleaner.Core.Platform;
 using WinCleaner.Memory;
 using WinCleaner.Optimizer;
 using WinCleaner.Optimizer.Drives;
+using WinCleaner.Optimizer.Programs;
 using WinCleaner.Optimizer.Startup;
 using WinCleaner.Safety;
 
@@ -37,7 +38,9 @@ public partial class MainViewModel : ObservableObject
             new NavigationItem("대시보드", "", new DashboardViewModel(() => SelectedItem = cleaning)),
             cleaning,
             new NavigationItem("용량 분석", "", new DiskUsageViewModel(
-                DiskUsageViewModel.FixedDrives(), dialogs, isElevated)),
+                DiskUsageViewModel.FixedDrives(), dialogs, isElevated, journal)),
+            new NavigationItem("프로그램 제거", char.ConvertFromUtf32(0xE71D), new ProgramsViewModel(
+                new RegistryProgramCatalog(), new ProcessUninstaller(), dialogs, journal)),
             new NavigationItem("최적화", "", new OptimizeViewModel(
                 catalog, new DriveMaintenance(), runner, dialogs, isElevated)),
             new NavigationItem("메모리", "", new MemoryViewModel(
@@ -66,6 +69,9 @@ public partial class MainViewModel : ObservableObject
         {
             case MemoryViewModel memory:
                 memory.Activate();
+                break;
+            case ProgramsViewModel programs:
+                programs.RefreshCommand.Execute(null);
                 break;
             case DashboardViewModel dashboard:
                 dashboard.RefreshCommand.Execute(null);
