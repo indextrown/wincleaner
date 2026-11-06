@@ -38,12 +38,42 @@ public partial class MemoryViewModel : ObservableObject
     [ObservableProperty]
     private string _statusText = $"{RefreshInterval.TotalSeconds:0}초마다 새로 읽습니다. 프로그램을 골라 작업 집합을 비울 수 있습니다.";
 
-    public MemoryViewModel(IMemoryService memory, IUserDialogs dialogs, ChangeJournal journal, bool isElevated)
+    public MemoryViewModel(IMemoryService memory, IUserDialogs dialogs, ChangeJournal journal, bool isElevated,
+        QuickOptimizeRunner? quick = null)
     {
         _memory = memory;
         _dialogs = dialogs;
         _journal = journal;
         _isElevated = isElevated;
+        _quick = quick;
+    }
+
+    private readonly QuickOptimizeRunner? _quick;
+
+    public bool CanQuickOptimize => _quick is not null;
+
+    /// <summary>게임 전이나 버벅일 때 쓰는 원클릭 정리. 고를 필요 없이 백그라운드 프로그램과 대기 목록을 한 번에 정리한다.</summary>
+    [RelayCommand]
+    private async Task QuickOptimizeAsync()
+    {
+        if (_quick is null || IsBusy)
+            return;
+
+        IsBusy = true;
+        try
+        {
+            StatusText = "원클릭 정리 중입니다.";
+            StatusText = await _quick.RunAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"메모리를 정리하지 못했습니다: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+            await RefreshAsync();
+        }
     }
 
     public ObservableCollection<ProcessGroupViewModel> Groups { get; } = [];

@@ -5,8 +5,13 @@
 
         <!-- 제목 -->
         <DockPanel DockPanel.Dock="Top">
-            <Button DockPanel.Dock="Right" Content="새로고침" VerticalAlignment="Center"
-                    Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButton}" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="원클릭 정리" Command="{Binding QuickOptimizeCommand}" Style="{StaticResource PrimaryButton}"
+                        IsEnabled="{Binding IsIdle}" Margin="0,0,8,0" AutomationProperties.AutomationId="QuickOptimizeButton"
+                        ToolTip="게임 전이나 버벅일 때: 백그라운드 프로그램과 대기 목록을 한 번에 정리합니다"
+                        Visibility="{Binding CanQuickOptimize, Converter={StaticResource BoolToVisibility}}" />
+                <Button Content="새로고침" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButton}" />
+            </StackPanel>
             <StackPanel>
                 <TextBlock Text="메모리" Style="{StaticResource PageTitle}" />
                 <TextBlock Text="{Binding StatusText}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,4,0,0"

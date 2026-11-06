@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WinCleaner.App.Services;
 using WinCleaner.Core;
 using WinCleaner.Core.Platform;
 using WinCleaner.Memory;
@@ -9,6 +10,7 @@ namespace WinCleaner.App.ViewModels;
 public partial class DashboardViewModel : ObservableObject
 {
     private readonly Action _openCleaning;
+    private readonly QuickOptimizeRunner? _quick;
 
     [ObservableProperty]
     private IReadOnlyList<DriveCardViewModel> _drives = [];
@@ -20,10 +22,45 @@ public partial class DashboardViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasRecommendation))]
     private string? _recommendation;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMemoryResult))]
+    private string? _memoryResultText;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(QuickOptimizeCommand))]
+    private bool _isOptimizing;
+
     /// <summary>화면은 메뉴에서 선택될 때마다 <see cref="RefreshCommand"/>로 다시 읽는다.</summary>
-    public DashboardViewModel(Action openCleaning)
+    public DashboardViewModel(Action openCleaning, QuickOptimizeRunner? quick = null)
     {
         _openCleaning = openCleaning;
+        _quick = quick;
+    }
+
+    public bool HasMemoryResult => MemoryResultText is not null;
+
+    public bool CanQuickOptimize => _quick is not null;
+
+    private bool CanRunQuickOptimize() => _quick is not null && !IsOptimizing;
+
+    /// <summary>대시보드에서 바로 쓰는 원클릭 메모리 정리. 게임 직전에 앱을 열자마자 누를 수 있게 한다.</summary>
+    [RelayCommand(CanExecute = nameof(CanRunQuickOptimize))]
+    private async Task QuickOptimizeAsync()
+    {
+        IsOptimizing = true;
+        try
+        {
+            MemoryResultText = await _quick!.RunAsync();
+        }
+        catch (Exception ex)
+        {
+            MemoryResultText = $"메모리를 정리하지 못했습니다: {ex.Message}";
+        }
+        finally
+        {
+            IsOptimizing = false;
+            Refresh();
+        }
     }
 
     public string OsDescription { get; } = SystemInfo.GetOsDescription();

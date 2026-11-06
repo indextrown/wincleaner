@@ -43,6 +43,34 @@ public sealed class TweakRunner(ChangeJournal journal, IRestorePointService rest
         return true;
     }
 
+    /// <summary>
+    /// 아직 되돌리지 않은 이 항목의 변경을 모두 되돌려, WinCleaner가 처음 바꾸기 전 상태로 돌아간다.
+    /// 여러 번 바꿨어도(예: 전원 옵션을 연달아 바꿈) 가장 오래된 기록의 백업을 쓴다. 되돌릴 기록이 없으면 false.
+    /// </summary>
+    public async Task<bool> RevertToOriginalAsync(ITweak tweak, CancellationToken ct)
+    {
+        var pending = journal.Entries
+            .Where(e => e.CanRevert && e.TweakId == tweak.Id && e.Backup is not null)
+            .OrderBy(e => e.Time)
+            .ToList();
+        if (pending.Count == 0)
+            return false;
+
+        var original = pending[0];
+        await tweak.RevertAsync(new TweakBackup(tweak.Id, original.Backup!), ct);
+
+        var now = DateTime.Now;
+        foreach (var entry in pending)
+            journal.MarkReverted(entry.Id, now);
+        journal.Add(new ChangeEntry
+        {
+            Kind = ChangeKind.Revert,
+            Title = $"되돌림: {tweak.Name}",
+            Detail = $"{original.Time:yyyy-MM-dd HH:mm}에 처음 바꾸기 전 상태로 되돌렸습니다 (기록 {pending.Count}개).",
+        });
+        return true;
+    }
+
     /// <summary><paramref name="entry"/>의 백업으로 되돌린다. 기록이 없으면 Windows 기본값으로 되돌린다.</summary>
     public async Task RevertAsync(ITweak tweak, ChangeEntry? entry, CancellationToken ct)
     {

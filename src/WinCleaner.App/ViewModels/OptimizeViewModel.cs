@@ -17,7 +17,7 @@ public enum OptimizeTab
     Drives,
 }
 
-/// <summary>최적화 화면. 시작 프로그램, 설정(전원·시각 효과·최대 절전), 드라이브 세 탭으로 나눈다.</summary>
+/// <summary>최적화 화면. 시작 프로그램, 설정(전원·시각 효과·터보 부스트·최대 절전), 드라이브 세 탭으로 나눈다.</summary>
 public partial class OptimizeViewModel : ObservableObject
 {
     private readonly TweakCatalog _catalog;
@@ -198,6 +198,13 @@ public partial class OptimizeViewModel : ObservableObject
         if (SelectedPowerScheme is not { } target || IsBusy)
             return;
 
+        // 이미 그 옵션이면 바꾸지도 기록하지도 않는다. 기록하면 "되돌리기"가 같은 옵션으로 돌아가는 기록이 생긴다.
+        if (_catalog.PowerSchemes.GetActive() == target.Id)
+        {
+            StatusText = $"이미 사용 중인 전원 관리 옵션입니다: {target.Name}";
+            return;
+        }
+
         IsBusy = true;
         try
         {
@@ -218,13 +225,13 @@ public partial class OptimizeViewModel : ObservableObject
     [RelayCommand]
     private async Task RevertPowerPlanAsync()
     {
-        if (_runner.Journal.LatestRevertible(PowerPlanTweak.TweakId) is not { } entry || IsBusy)
+        if (!CanRevertPowerPlan || IsBusy)
             return;
 
         IsBusy = true;
         try
         {
-            await _runner.RevertAsync(new PowerPlanTweak(_catalog.PowerSchemes, null), entry, CancellationToken.None);
+            await _runner.RevertToOriginalAsync(new PowerPlanTweak(_catalog.PowerSchemes, null), CancellationToken.None);
             StatusText = "전원 관리 옵션을 이전으로 되돌렸습니다.";
         }
         catch (Exception ex)
