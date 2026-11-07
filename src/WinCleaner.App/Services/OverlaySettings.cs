@@ -27,6 +27,9 @@ public sealed record OverlaySettings
     public bool ShowTopProcesses { get; init; }
     public bool ShowDiskNetwork { get; init; }
 
+    /// <summary>NVIDIA 그래픽카드가 쉬고 있어도 온도를 읽는다. 꺼져 있던 그래픽카드가 깨어나 열이 조금 는다.</summary>
+    public bool ReadGpuWhenIdle { get; init; }
+
     public OverlayPosition Position { get; init; } = OverlayPosition.TopRight;
 
     /// <summary>화면 가장자리에서 띄울 거리(가로·세로, 화면 단위 px).</summary>

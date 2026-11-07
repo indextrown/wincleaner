@@ -45,7 +45,9 @@ public sealed class TweakRunner(ChangeJournal journal, IRestorePointService rest
 
     /// <summary>
     /// 아직 되돌리지 않은 이 항목의 변경을 모두 되돌려, WinCleaner가 처음 바꾸기 전 상태로 돌아간다.
-    /// 여러 번 바꿨어도(예: 전원 옵션을 연달아 바꿈) 가장 오래된 기록의 백업을 쓴다. 되돌릴 기록이 없으면 false.
+    /// 여러 번 바꿨어도(예: 전원 옵션을 연달아 바꿈) 값마다 가장 오래된 기록의 백업을 쓴다.
+    /// 나중 기록에만 있는 값(예: 터보 제한이 나중에 백업하기 시작한 최소 프로세서 상태)은 그 기록에서 가져온다.
+    /// 되돌릴 기록이 없으면 false.
     /// </summary>
     public async Task<bool> RevertToOriginalAsync(ITweak tweak, CancellationToken ct)
     {
@@ -57,7 +59,13 @@ public sealed class TweakRunner(ChangeJournal journal, IRestorePointService rest
             return false;
 
         var original = pending[0];
-        await tweak.RevertAsync(new TweakBackup(tweak.Id, original.Backup!), ct);
+        var merged = new Dictionary<string, string?>();
+        foreach (var entry in pending)
+        {
+            foreach (var (key, value) in entry.Backup!)
+                merged.TryAdd(key, value);
+        }
+        await tweak.RevertAsync(new TweakBackup(tweak.Id, merged), ct);
 
         var now = DateTime.Now;
         foreach (var entry in pending)

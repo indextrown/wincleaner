@@ -331,6 +331,34 @@ public sealed class GameModeViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Turbo_limit_recorded_before_the_minimum_fix_reverts_both_values_correctly()
+    {
+        // 고치기 전 버전이 남긴 기록: 최대값만 백업했고, 최소 100% 때문에 제한이 걸리지 않은 상태.
+        var scheme = _processor.Values.Keys.First();
+        foreach (var s in _processor.Values.Keys.ToList())
+        {
+            _processor.Values[s] = (99, 99);
+            _processor.Minimums[s] = (100, 5);
+        }
+        _journal.Add(new ChangeEntry
+        {
+            Kind = ChangeKind.Tweak, Title = "터보 부스트 제한", TweakId = "turbo.limit", Time = DateTime.Now.AddHours(-1),
+            Backup = _processor.Values.Keys.SelectMany(s => new[] { ($"{s}:ac", "100"), ($"{s}:dc", "100") })
+                .ToDictionary(p => p.Item1, p => (string?)p.Item2),
+        });
+        _vm.Activate();
+        Assert.False(_vm.Turbo.IsApplied);
+
+        await _vm.ToggleTurboCommand.ExecuteAsync(null);
+        Assert.True(_vm.Turbo.IsApplied);
+        Assert.Equal((99u, 5u), _processor.Minimums[scheme]);
+
+        await _vm.ToggleTurboCommand.ExecuteAsync(null);
+        Assert.Equal((100u, 100u), _processor.Values[scheme]);
+        Assert.Equal((100u, 5u), _processor.Minimums[scheme]);
+    }
+
+    [Fact]
     public async Task Turbo_limit_set_elsewhere_turns_off_to_windows_default()
     {
         _processor.Values[_processor.Values.Keys.First()] = (80, 80);
@@ -457,6 +485,54 @@ public class TurboLimitTweakTests
     }
 
     [Fact]
+    public async Task Minimum_state_of_100_is_lowered_too_and_restored_on_revert()
+    {
+        // 실제로 있었던 일: "최고의 성능"은 최소 프로세서 상태가 100%라 최대만 99%로 낮추면 터보가 그대로 돌았다.
+        var processor = new FakeProcessorState((100, 100));
+        var scheme = processor.Values.Keys.Single();
+        processor.Minimums[scheme] = (100, 5);
+        var tweak = new TurboLimitTweak(processor);
+
+        var backup = await tweak.ApplyAsync(CancellationToken.None);
+
+        Assert.Equal((99u, 99u), processor.Values[scheme]);
+        Assert.Equal((99u, 5u), processor.Minimums[scheme]);
+        Assert.True((await tweak.GetStateAsync(CancellationToken.None)).IsApplied);
+
+        await tweak.RevertAsync(backup, CancellationToken.None);
+
+        Assert.Equal((100u, 100u), processor.Values[scheme]);
+        Assert.Equal((100u, 5u), processor.Minimums[scheme]);
+    }
+
+    [Fact]
+    public async Task Maximum_99_with_minimum_100_is_reported_as_not_limited()
+    {
+        var processor = new FakeProcessorState((99, 99));
+        processor.Minimums[processor.Values.Keys.Single()] = (100, 5);
+
+        var state = await new TurboLimitTweak(processor).GetStateAsync(CancellationToken.None);
+
+        Assert.False(state.IsApplied);
+        Assert.Contains("최소 프로세서 상태가 100%", state.StatusText);
+    }
+
+    [Fact]
+    public async Task Old_backups_without_minimum_leave_minimum_unchanged()
+    {
+        var processor = new FakeProcessorState((99, 99));
+        var scheme = processor.Values.Keys.Single();
+        processor.Minimums[scheme] = (99, 5);
+        var tweak = new TurboLimitTweak(processor);
+
+        await tweak.RevertAsync(new TweakBackup(tweak.Id, new Dictionary<string, string?> { [$"{scheme}:ac"] = "100", [$"{scheme}:dc"] = "100" }),
+            CancellationToken.None);
+
+        Assert.Equal((100u, 100u), processor.Values[scheme]);
+        Assert.Equal((99u, 5u), processor.Minimums[scheme]);
+    }
+
+    [Fact]
     public void Real_power_settings_can_be_read()
     {
         // 읽기만 한다. 실제 전원 설정은 바꾸지 않는다.
@@ -470,6 +546,9 @@ public class TurboLimitTweakTests
             var (ac, dc) = processor.Read(s);
             Assert.InRange(ac, 0u, 100u);
             Assert.InRange(dc, 0u, 100u);
+            var (minAc, minDc) = processor.ReadMinimum(s);
+            Assert.InRange(minAc, 0u, 100u);
+            Assert.InRange(minDc, 0u, 100u);
         });
     }
 
@@ -478,15 +557,22 @@ public class TurboLimitTweakTests
         public FakeProcessorState(params (uint Ac, uint Dc)[] values)
         {
             foreach (var value in values)
-                Values[Guid.NewGuid()] = value;
+            {
+                var scheme = Guid.NewGuid();
+                Values[scheme] = value;
+                Minimums[scheme] = (5, 5);
+            }
         }
 
         public Dictionary<Guid, (uint Ac, uint Dc)> Values { get; } = [];
+        public Dictionary<Guid, (uint Ac, uint Dc)> Minimums { get; } = [];
         public int ApplyActiveCount { get; private set; }
 
         public IReadOnlyList<Guid> Schemes() => Values.Keys.ToList();
         public (uint Ac, uint Dc) Read(Guid scheme) => Values[scheme];
         public void Write(Guid scheme, uint ac, uint dc) => Values[scheme] = (ac, dc);
+        public (uint Ac, uint Dc) ReadMinimum(Guid scheme) => Minimums[scheme];
+        public void WriteMinimum(Guid scheme, uint ac, uint dc) => Minimums[scheme] = (ac, dc);
         public void ApplyActive() => ApplyActiveCount++;
     }
 }

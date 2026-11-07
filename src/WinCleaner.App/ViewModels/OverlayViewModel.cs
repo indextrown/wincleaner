@@ -24,8 +24,8 @@ public partial class OverlayViewModel : ObservableObject
     private static readonly string[] SettingNames =
     [
         nameof(ShowClock), nameof(ShowCpu), nameof(ShowTemperature), nameof(ShowThrottle), nameof(ShowGpu), nameof(ShowMemory),
-        nameof(ShowFan), nameof(ShowStatus), nameof(ShowTopProcesses), nameof(ShowDiskNetwork), nameof(Position), nameof(MarginX),
-        nameof(MarginY), nameof(Scale), nameof(BackgroundOpacity),
+        nameof(ShowFan), nameof(ShowStatus), nameof(ShowTopProcesses), nameof(ShowDiskNetwork), nameof(ReadGpuWhenIdle),
+        nameof(Position), nameof(MarginX), nameof(MarginY), nameof(Scale), nameof(BackgroundOpacity),
     ];
 
     private static readonly string[] VisibilityNames =
@@ -73,6 +73,9 @@ public partial class OverlayViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _showDiskNetwork;
+
+    [ObservableProperty]
+    private bool _readGpuWhenIdle;
 
     [ObservableProperty]
     private OverlayPosition _position;
@@ -200,7 +203,7 @@ public partial class OverlayViewModel : ObservableObject
     {
         ShowClock = ShowClock, ShowCpu = ShowCpu, ShowTemperature = ShowTemperature, ShowThrottle = ShowThrottle,
         ShowGpu = ShowGpu, ShowMemory = ShowMemory, ShowFan = ShowFan, ShowStatus = ShowStatus,
-        ShowTopProcesses = ShowTopProcesses, ShowDiskNetwork = ShowDiskNetwork, Position = Position,
+        ShowTopProcesses = ShowTopProcesses, ShowDiskNetwork = ShowDiskNetwork, ReadGpuWhenIdle = ReadGpuWhenIdle, Position = Position,
         MarginX = MarginX, MarginY = MarginY, Scale = Scale, BackgroundOpacity = BackgroundOpacity,
     };
 
@@ -257,9 +260,15 @@ public partial class OverlayViewModel : ObservableObject
             var details = new List<string>();
             if (gpu.TemperatureCelsius is { } gpuCelsius)
                 details.Add($"{gpuCelsius}°C");
-            if (gpu.CoreGhz is { } gpuGhz)
+            // 쉬고 있으면 NVML이 0MHz를 돌려준다(2026-11-07 확인).
+            if (gpu.CoreGhz is { } gpuGhz and >= 0.05)
                 details.Add($"{gpuGhz.ToString("0.0", CultureInfo.InvariantCulture)}GHz");
-            GpuDetailText = details.Count > 0 ? string.Join("  ", details) : gpu.UsagePercent < 0.5 ? "쉬는 중" : "";
+            if (details.Count == 0 && gpu.UsagePercent < 0.5)
+                details.Add("쉬는 중");
+            // 롤 클라이언트처럼 내장 그래픽으로 도는 프로그램이 있으면 함께 보인다.
+            if (gpu.OtherUsagePercent >= 0.5)
+                details.Add($"내장 {gpu.OtherUsagePercent:0}%");
+            GpuDetailText = string.Join("  ", details);
         }
         else
         {
@@ -322,6 +331,7 @@ public partial class OverlayViewModel : ObservableObject
         ShowStatus = s.ShowStatus;
         ShowTopProcesses = s.ShowTopProcesses;
         ShowDiskNetwork = s.ShowDiskNetwork;
+        ReadGpuWhenIdle = s.ReadGpuWhenIdle;
         Position = s.Position;
         MarginX = s.MarginX;
         MarginY = s.MarginY;

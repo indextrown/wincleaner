@@ -83,6 +83,10 @@
                                 <CheckBox Content="많이 쓰는 프로그램" IsChecked="{Binding ShowTopProcesses}" />
                                 <CheckBox Content="디스크·네트워크 속도" IsChecked="{Binding ShowDiskNetwork}" />
                             </WrapPanel>
+                            <CheckBox Content="그래픽카드가 쉬고 있어도 GPU 온도 읽기" IsChecked="{Binding ReadGpuWhenIdle}" Margin="0,2,0,0" FontSize="13"
+                                      Foreground="{StaticResource TextPrimaryBrush}" AutomationProperties.AutomationId="OverlayGpuWhenIdle" />
+                            <TextBlock Style="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" Margin="22,2,0,8"
+                                       Text="이 노트북은 게임을 안 할 때 NVIDIA 그래픽카드를 꺼 둡니다. 켜 두면 온도를 읽으려고 그래픽카드를 깨우므로 열과 전기를 조금 더 씁니다. 끄면 게임 중(그래픽카드가 일할 때)에만 온도가 나옵니다." />
 
                             <Grid Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>

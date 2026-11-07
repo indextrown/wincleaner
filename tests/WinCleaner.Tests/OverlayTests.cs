@@ -61,6 +61,17 @@ public class OverlayViewModelTests
         vm.Apply(new OverlaySnapshot(new SystemSample { Gpu = new GpuSample("GTX 1050 Ti", 0, null, null) }, null, null), Now);
         Assert.Equal("쉬는 중", vm.GpuDetailText);
 
+        // 실제로 본 상태: 롤 클라이언트가 내장 그래픽을 27% 쓰고 NVIDIA는 쉬는 중.
+        vm.Apply(new OverlaySnapshot(new SystemSample { Gpu = new GpuSample("GTX 1050 Ti", 0, null, null, 27.0) }, null, null), Now);
+        Assert.Equal("쉬는 중  내장 27%", vm.GpuDetailText);
+
+        vm.Apply(new OverlaySnapshot(new SystemSample { Gpu = new GpuSample("GTX 1050 Ti", 3, 48, 0.3, 0) }, null, null), Now);
+        Assert.Equal("48°C  0.3GHz", vm.GpuDetailText);
+
+        // "쉬고 있어도 읽기"를 켰을 때 실제로 본 값: 39°C, 0MHz.
+        vm.Apply(new OverlaySnapshot(new SystemSample { Gpu = new GpuSample("GTX 1050 Ti", 0, 39, 0, 0) }, null, null), Now);
+        Assert.Equal("39°C", vm.GpuDetailText);
+
         vm.Apply(new OverlaySnapshot(null, null, null), Now);
         Assert.Equal("–", vm.CpuText);
         Assert.Equal("–", vm.MemoryText);
@@ -223,6 +234,12 @@ public class OverlaySamplerTests
         sampler.Sample(new OverlaySettings { ShowCpu = false, ShowThrottle = false, ShowGpu = true, ShowDiskNetwork = true, ShowTopProcesses = true });
         Assert.Equal(MonitorParts.Gpu | MonitorParts.DiskNetwork | MonitorParts.TopProcess, monitor.Parts[^1]);
         Assert.Equal(1, fans.Calls);
+
+        sampler.Sample(new OverlaySettings { ShowCpu = false, ShowThrottle = false, ReadGpuWhenIdle = true });
+        Assert.Equal(MonitorParts.Gpu | MonitorParts.GpuWhenIdle, monitor.Parts[^1]);
+
+        sampler.Sample(new OverlaySettings { ShowCpu = false, ShowThrottle = false, ShowGpu = false, ReadGpuWhenIdle = true });
+        Assert.Equal(MonitorParts.None, monitor.Parts[^1]);
     }
 
     [Fact]

@@ -12,11 +12,15 @@ public enum MonitorParts
     Gpu = 2,
     DiskNetwork = 4,
     TopProcess = 8,
+
+    /// <summary>NVIDIA 그래픽카드가 쉬고 있어도 온도·속도를 읽는다. 옵티머스 노트북은 꺼져 있던 그래픽카드가 깨어난다.</summary>
+    GpuWhenIdle = 16,
 }
 
 /// <param name="UsagePercent">가장 바쁜 엔진(3D·복사·영상 등) 기준 사용률. 작업 관리자와 같은 방식.</param>
-/// <param name="TemperatureCelsius">NVIDIA이고 일하고 있을 때만.</param>
-public sealed record GpuSample(string Name, double UsagePercent, int? TemperatureCelsius, double? CoreGhz);
+/// <param name="TemperatureCelsius">NVIDIA이고 일하고 있을 때(또는 <see cref="MonitorParts.GpuWhenIdle"/>)만.</param>
+/// <param name="OtherUsagePercent">NVIDIA 말고 다른 그래픽(보통 CPU 내장 그래픽) 중 가장 바쁜 것의 사용률. 롤 클라이언트처럼 내장 그래픽으로 도는 프로그램을 알 수 있다.</param>
+public sealed record GpuSample(string Name, double UsagePercent, int? TemperatureCelsius, double? CoreGhz, double? OtherUsagePercent = null);
 
 /// <summary>한 번 읽은 값. 읽지 않았거나 못 읽은 값은 null. 비율 값은 지난번 읽은 뒤의 평균이다.</summary>
 public sealed record SystemSample
@@ -81,7 +85,7 @@ public sealed partial class PdhSystemMonitor : ISystemMonitor, IDisposable
             };
         }
         if (parts.HasFlag(MonitorParts.Gpu))
-            sample = sample with { Gpu = ReadGpu() };
+            sample = sample with { Gpu = ReadGpu(parts.HasFlag(MonitorParts.GpuWhenIdle)) };
         if (parts.HasFlag(MonitorParts.DiskNetwork))
         {
             sample = sample with
@@ -133,7 +137,7 @@ public sealed partial class PdhSystemMonitor : ISystemMonitor, IDisposable
         return top.Name is null ? null : top;
     }
 
-    private GpuSample? ReadGpu()
+    private GpuSample? ReadGpu(bool whenIdle)
     {
         var usage = GpuUsageByAdapter(PdhQuery.ReadArray(_gpuEngines));
         var adapters = _adapters.Value;
@@ -142,8 +146,9 @@ public sealed partial class PdhSystemMonitor : ISystemMonitor, IDisposable
         if (adapters.FirstOrDefault(a => a.IsNvidia) is { } nvidia)
         {
             var percent = usage.GetValueOrDefault(nvidia.Luid);
-            var (celsius, ghz) = _nvidia.Read(active: percent >= 0.5);
-            return new GpuSample(nvidia.Name, percent, celsius, ghz);
+            var (celsius, ghz) = _nvidia.Read(active: whenIdle || percent >= 0.5);
+            var others = usage.Where(u => u.Key != nvidia.Luid).Select(u => u.Value).DefaultIfEmpty().Max();
+            return new GpuSample(nvidia.Name, percent, celsius, ghz, others);
         }
 
         if (usage.Count == 0)

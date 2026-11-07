@@ -51,6 +51,8 @@ public partial class MainViewModel : ObservableObject
         if (isElevated)
             RecoverFans(fanGuard);
         var undervolt = new UndervoltViewModel(new XtuUndervolt(), new ScheduledTaskUndervoltStartup(), dialogs, journal, isElevated);
+        // 오버레이 상태 줄에 전압이 나오도록 게임 모드 화면에 들어가지 않아도 한 번 읽어 둔다(백그라운드, 몇 초).
+        undervolt.RefreshCommand.Execute(null);
         var overlay = CreateOverlay(memory, isElevated);
         var gameMode = new GameModeViewModel(runner, powerSchemes, quick, new ClevoFanMonitor(), fanGuard,
             new FanModeStore(FanModeStore.DefaultPath), turbo, undervolt, overlay, isElevated);

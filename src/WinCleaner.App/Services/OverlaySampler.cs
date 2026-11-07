@@ -26,6 +26,8 @@ public sealed class OverlaySampler(ISystemMonitor? monitor, IMemoryService memor
             parts |= MonitorParts.Cpu;
         if (settings.ShowGpu)
             parts |= MonitorParts.Gpu;
+        if (settings.ShowGpu && settings.ReadGpuWhenIdle)
+            parts |= MonitorParts.GpuWhenIdle;
         if (settings.ShowDiskNetwork)
             parts |= MonitorParts.DiskNetwork;
         if (settings.ShowTopProcesses)
