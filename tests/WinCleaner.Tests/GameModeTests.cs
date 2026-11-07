@@ -194,7 +194,9 @@ public sealed class GameModeViewModelTests : IDisposable
         var guard = new FanGuard(new FanGuardTests.FakeFanControl(), Path.Combine(_box.Root, "fan-manual.flag"));
         var modes = new FanModeStore(Path.Combine(_box.Root, "fan-modes.json"));
         var undervolt = new UndervoltViewModel(new NoUndervolt(), new NoUndervoltStartup(), new YesDialogs(), _journal, isElevated: false);
-        _vm = new GameModeViewModel(runner, _power, quick, new NoFans(), guard, modes, new TurboLimitTweak(_processor), undervolt, isElevated: false);
+        var overlay = new OverlayViewModel(new OverlayViewModelTests.FakeSampler(), _ => { });
+        _vm = new GameModeViewModel(runner, _power, quick, new NoFans(), guard, modes, new TurboLimitTweak(_processor), undervolt, overlay,
+            isElevated: false);
     }
 
     public void Dispose()

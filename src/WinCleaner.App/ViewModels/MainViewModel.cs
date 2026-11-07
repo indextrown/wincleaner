@@ -2,6 +2,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WinCleaner.App.Services;
+using WinCleaner.App.Views;
 using WinCleaner.Cleaning;
 using WinCleaner.Core.Platform;
 using WinCleaner.Memory;
@@ -21,6 +22,9 @@ public partial class MainViewModel : ObservableObject
 {
     [ObservableProperty]
     private NavigationItem? _selectedItem;
+
+    // 앱이 끝날 때까지 단축키를 붙잡아 둔다.
+    private GlobalHotkey? _hotkey;
 
     public MainViewModel()
     {
@@ -46,8 +50,9 @@ public partial class MainViewModel : ObservableObject
         if (isElevated)
             RecoverFans(fanGuard);
         var undervolt = new UndervoltViewModel(new XtuUndervolt(), new ScheduledTaskUndervoltStartup(), dialogs, journal, isElevated);
+        var overlay = CreateOverlay(memory, isElevated);
         var gameMode = new GameModeViewModel(runner, powerSchemes, quick, new ClevoFanMonitor(), fanGuard,
-            new FanModeStore(FanModeStore.DefaultPath), turbo, undervolt, isElevated);
+            new FanModeStore(FanModeStore.DefaultPath), turbo, undervolt, overlay, isElevated);
         // 앱이 어떻게 끝나든 사용자 지정 팬 속도를 노트북 자동 제어로 되돌린다.
         AppDomain.CurrentDomain.ProcessExit += (_, _) => gameMode.Fans.Release();
         AppDomain.CurrentDomain.UnhandledException += (_, _) => gameMode.Fans.Release();
@@ -122,6 +127,35 @@ public partial class MainViewModel : ObservableObject
     }
 
     private static string Glyph(int codePoint) => char.ConvertFromUtf32(codePoint);
+
+    // 오버레이 창은 처음 보일 때 만든다. 이 생성자는 주 창을 만드는 도중에 불려서, 여기서 창을 만들면 순서가 꼬일 수 있다.
+    private OverlayViewModel CreateOverlay(IMemoryService memory, bool isElevated)
+    {
+        ICpuMonitor? cpu;
+        try
+        {
+            cpu = new PdhCpuMonitor();
+        }
+        catch (InvalidOperationException)
+        {
+            cpu = null;
+        }
+
+        OverlayWindow? window = null;
+        OverlayViewModel? overlay = null;
+        overlay = new OverlayViewModel(new OverlaySampler(cpu, memory, new ClevoFanMonitor(), isElevated), show =>
+        {
+            window ??= new OverlayWindow { DataContext = overlay };
+            if (show)
+                window.Show();
+            else
+                window.Hide();
+        });
+
+        _hotkey = new GlobalHotkey(GlobalHotkey.ModControl | GlobalHotkey.ModShift, GlobalHotkey.KeyF10, () => overlay.ToggleCommand.Execute(null));
+        overlay.SetHotkeyAvailable(_hotkey.IsRegistered);
+        return overlay;
+    }
 
     // 지난번에 사용자 지정 팬 속도를 건 채로 앱이 비정상 종료됐으면 자동 제어로 되돌린다.
     private static void RecoverFans(FanGuard guard)

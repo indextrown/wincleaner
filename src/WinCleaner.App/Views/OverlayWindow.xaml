@@ -1,0 +1,69 @@
+<Window x:Class="WinCleaner.App.Views.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WinCleaner 오버레이"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False"
+        ResizeMode="NoResize" SizeToContent="WidthAndHeight"
+        FontFamily="{StaticResource UiFont}">
+    <Border Background="#B8101418" CornerRadius="8" Padding="12,8" BorderBrush="#40FFFFFF" BorderThickness="1">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.Resources>
+                <Style x:Key="Label" TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="#9FB0C8" />
+                    <Setter Property="FontSize" Value="13" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="Margin" Value="0,1,12,1" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                </Style>
+                <Style x:Key="Value" TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="FontSize" Value="15" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="Margin" Value="0,1,10,1" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                </Style>
+            </Grid.Resources>
+
+            <TextBlock Text="CPU" Style="{StaticResource Label}" />
+            <TextBlock Grid.Column="1" Text="{Binding CpuText}" Style="{StaticResource Value}" MinWidth="44" />
+            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <TextBlock Text="{Binding ClockText}" Style="{StaticResource Value}" />
+                <TextBlock Text="{Binding TemperatureText}" FontSize="15" FontWeight="SemiBold" Margin="0,1,0,1" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#6EE7A0" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsWarm}" Value="True">
+                                    <Setter Property="Foreground" Value="#FFD166" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsHot}" Value="True">
+                                    <Setter Property="Foreground" Value="#FF6B6B" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+
+            <TextBlock Grid.Row="1" Text="RAM" Style="{StaticResource Label}" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MemoryPercentText}" Style="{StaticResource Value}" />
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding MemoryText}" Style="{StaticResource Value}" Margin="0,1,0,1" />
+
+            <TextBlock Grid.Row="2" Text="팬" Style="{StaticResource Label}"
+                       Visibility="{Binding HasFan, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding FanText}" Style="{StaticResource Value}"
+                       Visibility="{Binding HasFan, Converter={StaticResource BoolToVisibility}}" />
+        </Grid>
+    </Border>
+</Window>

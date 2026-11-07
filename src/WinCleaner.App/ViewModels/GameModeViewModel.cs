@@ -63,7 +63,7 @@ public partial class GameModeViewModel : ObservableObject
     private FanReading? _fanReading;
 
     public GameModeViewModel(TweakRunner runner, IPowerSchemes power, QuickOptimizeRunner quick, IFanMonitor fans,
-        FanGuard fanGuard, FanModeStore fanModes, ITweak turbo, UndervoltViewModel undervolt, bool isElevated)
+        FanGuard fanGuard, FanModeStore fanModes, ITweak turbo, UndervoltViewModel undervolt, OverlayViewModel overlay, bool isElevated)
     {
         _runner = runner;
         _power = power;
@@ -72,6 +72,7 @@ public partial class GameModeViewModel : ObservableObject
         _isElevated = isElevated;
         Fans = new FanControlViewModel(fanGuard, fanModes, isElevated);
         Undervolt = undervolt;
+        Overlay = overlay;
         Turbo = new TweakItemViewModel(turbo, isElevated);
         Turbo.PropertyChanged += (_, e) =>
         {
@@ -94,6 +95,9 @@ public partial class GameModeViewModel : ObservableObject
 
     /// <summary>CPU 전압 낮추기(언더볼팅).</summary>
     public UndervoltViewModel Undervolt { get; }
+
+    /// <summary>게임 중 성능 표시(오버레이).</summary>
+    public OverlayViewModel Overlay { get; }
 
     public bool HasFanReading => FanReading is not null;
 
