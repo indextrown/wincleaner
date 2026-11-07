@@ -72,10 +72,16 @@
                             </TextBlock>
                         </StackPanel>
                         <StackPanel MinWidth="150">
-                            <TextBlock Text="팬 속도" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="CPU 팬" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
                             <TextBlock Text="{Binding FanSpeedText}" FontSize="34" FontWeight="SemiBold"
                                        Foreground="{StaticResource TextPrimaryBrush}" AutomationProperties.AutomationId="FanSpeedText" />
                             <TextBlock Text="{Binding FanRpmText}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                        </StackPanel>
+                        <StackPanel MinWidth="150">
+                            <TextBlock Text="GPU 팬" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="{Binding GpuFanSpeedText}" FontSize="34" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" AutomationProperties.AutomationId="GpuFanSpeedText" />
+                            <TextBlock Text="{Binding GpuFanRpmText}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
                         </StackPanel>
                     </StackPanel>
 
@@ -109,8 +115,87 @@
                                  Margin="0,8,0,0" Padding="8" BorderBrush="{StaticResource CardBorderBrush}"
                                  Background="{StaticResource WindowBackgroundBrush}" TextWrapping="NoWrap" />
                     </Expander>
-                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"
-                               Text="팬 속도를 직접 바꾸는 기능은 넣지 않았습니다. 이 노트북은 뜨거울 때 이미 팬을 최대로 돌리고 있어 더 올릴 수 없고, 낮추면 과열될 수 있기 때문입니다. 대신 아래 터보 부스트 제한으로 열을 줄이세요." />
+                </StackPanel>
+            </Border>
+
+            <!-- 팬 속도 조절 -->
+            <Border Style="{StaticResource Card}" Margin="0,12,0,0" DataContext="{Binding Fans}">
+                <StackPanel>
+                    <TextBlock Text="팬 속도 조절" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Text="{Binding ControlText}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0"
+                               AutomationProperties.AutomationId="FanControlText">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource HintBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding State}" Value="Protecting">
+                                        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding UnavailableText}" FontSize="12" Margin="0,4,0,0" Foreground="{StaticResource DangerBrush}"
+                               Visibility="{Binding IsUnavailable, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Grid Margin="0,14,0,0" IsEnabled="{Binding CanControl}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="80" />
+                            <ColumnDefinition Width="*" MaxWidth="420" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="팬 모드" VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}"
+                                  DisplayMemberPath="DisplayName" Height="30" VerticalContentAlignment="Center"
+                                  AutomationProperties.AutomationId="FanModeCombo" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0">
+                            <Button Content="적용" MinWidth="80" Command="{Binding ApplyCommand}" Style="{StaticResource PrimaryButton}"
+                                    AutomationProperties.AutomationId="FanApplyButton" />
+                            <Button Content="자동으로 되돌리기" Margin="8,0,0,0" Command="{Binding RestoreAutoCommand}"
+                                    Style="{StaticResource SecondaryButton}" AutomationProperties.AutomationId="FanAutoButton" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1" Text="CPU 팬" VerticalAlignment="Center" FontSize="13" Margin="0,12,0,0"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                        <Slider Grid.Row="1" Grid.Column="1" Margin="0,12,0,0" Minimum="{Binding MinPercent}" Maximum="100"
+                                TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding CpuPercent}"
+                                IsEnabled="{Binding CanAdjust}" AutomationProperties.AutomationId="CpuFanSlider" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding CpuPercent, StringFormat={}{0}%}" Margin="10,12,0,0"
+                                   VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
+
+                        <TextBlock Grid.Row="2" Text="GPU 팬" VerticalAlignment="Center" FontSize="13" Margin="0,10,0,0"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                        <Slider Grid.Row="2" Grid.Column="1" Margin="0,10,0,0" Minimum="{Binding MinPercent}" Maximum="100"
+                                TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding GpuPercent}"
+                                IsEnabled="{Binding CanAdjust}" AutomationProperties.AutomationId="GpuFanSlider" />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding GpuPercent, StringFormat={}{0}%}" Margin="10,10,0,0"
+                                   VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
+
+                        <TextBlock Grid.Row="3" Text="모드 저장" VerticalAlignment="Center" FontSize="13" Margin="0,14,0,0"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                        <TextBox Grid.Row="3" Grid.Column="1" Margin="0,14,0,0" Height="30" VerticalContentAlignment="Center"
+                                 Text="{Binding NewModeName, UpdateSourceTrigger=PropertyChanged}" MaxLength="30"
+                                 AutomationProperties.AutomationId="FanModeName" AutomationProperties.Name="저장할 모드 이름" />
+                        <StackPanel Grid.Row="3" Grid.Column="2" Orientation="Horizontal" Margin="10,14,0,0">
+                            <Button Content="이 값으로 저장" Command="{Binding SaveModeCommand}" Style="{StaticResource SecondaryButton}"
+                                    AutomationProperties.AutomationId="FanSaveButton" />
+                            <Button Content="선택한 모드 삭제" Margin="8,0,0,0" Command="{Binding DeleteModeCommand}"
+                                    IsEnabled="{Binding CanDelete}" Style="{StaticResource SecondaryButton}"
+                                    AutomationProperties.AutomationId="FanDeleteButton" />
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="{Binding MessageText}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"
+                               Foreground="{StaticResource HintBrush}" AutomationProperties.AutomationId="FanMessageText" />
+                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Text="'직접 설정'이나 저장한 모드를 고르면 슬라이더로 속도를 정할 수 있습니다. 이름을 비우고 저장하면 고른 모드를 덮어씁니다. 팬이 멈추지 않도록 25% 아래로는 내리지 않고, CPU가 90°C를 넘으면 노트북 자동 제어로 돌렸다가 80°C 아래로 식으면 다시 적용합니다. 앱을 끄면 자동 제어로 돌아갑니다." />
                 </StackPanel>
             </Border>
 
@@ -142,6 +227,46 @@
                                    Text="최대 프로세서 상태를 99%로 낮춰 터보 부스트를 끕니다. CPU 최고 속도가 기본 속도로 묶이는 대신 온도가 크게 내려가, 과열로 속도가 오르내리며 생기는 끊김이 줄어듭니다. 모든 전원 관리 옵션에 적용되고, 끄면 원래 값으로 돌아갑니다. 최적화 화면과 기록 메뉴에서도 되돌릴 수 있습니다." />
                     </StackPanel>
                 </DockPanel>
+            </Border>
+
+            <!-- CPU 전압 낮추기 (언더볼팅) -->
+            <Border Style="{StaticResource Card}" Margin="0,12,0,0" DataContext="{Binding Undervolt}">
+                <StackPanel>
+                    <TextBlock Text="CPU 전압 낮추기 (언더볼팅)" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Text="{Binding CurrentText}" FontSize="13" Margin="0,6,0,0" Foreground="{StaticResource HintBrush}" TextWrapping="Wrap"
+                               AutomationProperties.AutomationId="UndervoltCurrentText" />
+
+                    <Grid Margin="0,14,0,0" IsEnabled="{Binding CanChange}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="80" />
+                            <ColumnDefinition Width="*" MaxWidth="420" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="낮출 값" VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <!-- 오른쪽으로 갈수록 덜 낮춘다(0mV = 원래대로). -->
+                        <Slider Grid.Column="1" Minimum="{Binding MinMillivolts}" Maximum="{Binding MaxMillivolts}" TickFrequency="5"
+                                IsSnapToTickEnabled="True" Value="{Binding Millivolts}" VerticalAlignment="Center"
+                                AutomationProperties.AutomationId="UndervoltSlider" AutomationProperties.Name="CPU 전압을 낮출 값" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0">
+                            <TextBlock Text="{Binding MillivoltsText}" MinWidth="64" VerticalAlignment="Center" FontSize="13"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <Button Content="적용" MinWidth="80" Command="{Binding ApplyCommand}" Style="{StaticResource PrimaryButton}"
+                                    AutomationProperties.AutomationId="UndervoltApplyButton" />
+                            <Button Content="원래대로 (0mV)" Margin="8,0,0,0" Command="{Binding ResetCommand}"
+                                    Style="{StaticResource SecondaryButton}" AutomationProperties.AutomationId="UndervoltResetButton" />
+                        </StackPanel>
+                    </Grid>
+
+                    <CheckBox Content="Windows에 로그인할 때와 절전에서 깨어날 때 자동으로 다시 적용" Margin="0,12,0,0" FontSize="13"
+                              IsChecked="{Binding AutoApply}" IsEnabled="{Binding CanChange}"
+                              Foreground="{StaticResource TextPrimaryBrush}" AutomationProperties.AutomationId="UndervoltAutoApply" />
+                    <TextBlock Text="{Binding AutoApplyText}" FontSize="12" Margin="22,4,0,0" TextWrapping="Wrap"
+                               Foreground="{StaticResource TextSecondaryBrush}" AutomationProperties.AutomationId="UndervoltAutoApplyText" />
+                    <TextBlock Text="{Binding MessageText}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Foreground="{StaticResource HintBrush}" AutomationProperties.AutomationId="UndervoltMessageText" />
+                    <TextBlock Style="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Text="CPU에 주는 전압을 조금 낮춰 같은 속도에서 열을 줄입니다. 이 노트북은 열 때문에 속도가 떨어지므로, 열이 줄면 그만큼 빨라집니다(측정: −125mV에서 오래 세게 쓸 때 약 12% 빠름). 너무 낮추면 화면이 멈추거나 블루스크린이 날 수 있지만 고장 나지는 않고, 재부팅하면 원래대로 돌아갑니다. 자동 적용은 블루스크린이나 강제 종료가 한 번이라도 있으면 다음 부팅 때 적용하지 않고 스스로 꺼집니다." />
+                </StackPanel>
             </Border>
 
             <!-- 원클릭 메모리 정리 -->

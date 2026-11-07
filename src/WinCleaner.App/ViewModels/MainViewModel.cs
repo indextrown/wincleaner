@@ -6,6 +6,7 @@ using WinCleaner.Cleaning;
 using WinCleaner.Core.Platform;
 using WinCleaner.Memory;
 using WinCleaner.Optimizer;
+using WinCleaner.Optimizer.Cpu;
 using WinCleaner.Optimizer.Drives;
 using WinCleaner.Optimizer.Fans;
 using WinCleaner.Optimizer.Programs;
@@ -41,11 +42,20 @@ public partial class MainViewModel : ObservableObject
         var cleaning = new NavigationItem("디스크 청소", Glyph(0xE74D), new CleaningViewModel(
             RuleCatalog.CreateBuiltInRules(), dialogs, isElevated, CleanupLog.DefaultDirectory, journal));
 
+        var fanGuard = new FanGuard(new ClevoFanControl(), FanGuard.DefaultMarkerPath);
+        if (isElevated)
+            RecoverFans(fanGuard);
+        var undervolt = new UndervoltViewModel(new XtuUndervolt(), new ScheduledTaskUndervoltStartup(), dialogs, journal, isElevated);
+        var gameMode = new GameModeViewModel(runner, powerSchemes, quick, new ClevoFanMonitor(), fanGuard,
+            new FanModeStore(FanModeStore.DefaultPath), turbo, undervolt, isElevated);
+        // 앱이 어떻게 끝나든 사용자 지정 팬 속도를 노트북 자동 제어로 되돌린다.
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => gameMode.Fans.Release();
+        AppDomain.CurrentDomain.UnhandledException += (_, _) => gameMode.Fans.Release();
+
         NavigationItems =
         [
             new NavigationItem("대시보드", Glyph(0xE80F), new DashboardViewModel(() => SelectedItem = cleaning, quick)),
-            new NavigationItem("게임 모드", Glyph(0xE7FC), new GameModeViewModel(
-                runner, powerSchemes, quick, new ClevoFanMonitor(), turbo, isElevated)),
+            new NavigationItem("게임 모드", Glyph(0xE7FC), gameMode),
             cleaning,
             new NavigationItem("용량 분석", Glyph(0xEDA2), new DiskUsageViewModel(
                 DiskUsageViewModel.FixedDrives(), dialogs, isElevated, journal)),
@@ -112,4 +122,17 @@ public partial class MainViewModel : ObservableObject
     }
 
     private static string Glyph(int codePoint) => char.ConvertFromUtf32(codePoint);
+
+    // 지난번에 사용자 지정 팬 속도를 건 채로 앱이 비정상 종료됐으면 자동 제어로 되돌린다.
+    private static void RecoverFans(FanGuard guard)
+    {
+        try
+        {
+            guard.RecoverAfterCrash();
+        }
+        catch (Exception)
+        {
+            // 팬 인터페이스가 없는 PC다. 표시 파일은 남겨 두고 넘어간다.
+        }
+    }
 }

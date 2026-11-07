@@ -133,6 +133,30 @@ public class FanReadingTests
 
         Assert.Null(reading.CpuTemperature);
         Assert.Null(reading.FanRpm);
+        if (fan1Info == 0xFFFFFFFF)
+            Assert.Null(reading.FanPercent);
+    }
+
+    [Fact]
+    public void Gpu_fan_is_not_detected_on_the_single_fan_Hansung_X58K()
+    {
+        // 실제 기록: 팬 수 1, Fan2Info 바이트 0 = 0, GetFan12RPM 위 16비트 = 0.
+        var reading = new FanReading([("GetFANCount", 1u), ("Fan2Info", 0x00140100u), ("GetFan12RPM", 0x14Cu)]);
+
+        Assert.False(reading.HasGpuFan);
+        Assert.Equal(0, reading.GpuFanPercent);
+        Assert.Null(reading.GpuFanRpm);
+    }
+
+    [Fact]
+    public void Gpu_fan_is_decoded_from_fan2_and_upper_rpm_word()
+    {
+        var reading = new FanReading([("GetFANCount", 2u), ("Fan2Info", 0x00450080u), ("GetFan12RPM", 0x01AE014Cu)]);
+
+        Assert.True(reading.HasGpuFan);
+        Assert.Equal(50, reading.GpuFanPercent);
+        Assert.Equal(5014, reading.GpuFanRpm);
+        Assert.Equal(6494, reading.FanRpm);
     }
 
     [Fact]
@@ -167,7 +191,10 @@ public sealed class GameModeViewModelTests : IDisposable
         var runner = new TweakRunner(_journal, new NoRestorePoints(), new YesDialogs());
         var memory = new QuickMemoryOptimizerTests.FakeMemory([new(10, "chrome", 900L << 20, 0)]);
         var quick = new QuickOptimizeRunner(new QuickMemoryOptimizer(memory, new QuickMemoryOptimizerTests.FakeForeground()), _journal, isElevated: true);
-        _vm = new GameModeViewModel(runner, _power, quick, new NoFans(), new TurboLimitTweak(_processor), isElevated: false);
+        var guard = new FanGuard(new FanGuardTests.FakeFanControl(), Path.Combine(_box.Root, "fan-manual.flag"));
+        var modes = new FanModeStore(Path.Combine(_box.Root, "fan-modes.json"));
+        var undervolt = new UndervoltViewModel(new NoUndervolt(), new NoUndervoltStartup(), new YesDialogs(), _journal, isElevated: false);
+        _vm = new GameModeViewModel(runner, _power, quick, new NoFans(), guard, modes, new TurboLimitTweak(_processor), undervolt, isElevated: false);
     }
 
     public void Dispose()
@@ -317,6 +344,24 @@ public sealed class GameModeViewModelTests : IDisposable
     private sealed class NoFans : IFanMonitor
     {
         public FanReading? Read() => null;
+    }
+
+    private sealed class NoUndervolt : WinCleaner.Optimizer.Cpu.IUndervolt
+    {
+        public bool IsAvailable => false;
+
+        public Task<WinCleaner.Optimizer.Cpu.UndervoltState> ReadAsync(CancellationToken ct) => throw new InvalidOperationException();
+
+        public Task<WinCleaner.Optimizer.Cpu.UndervoltState> ApplyAsync(int millivolts, CancellationToken ct) => throw new InvalidOperationException();
+    }
+
+    private sealed class NoUndervoltStartup : WinCleaner.Optimizer.Cpu.IUndervoltStartup
+    {
+        public Task<WinCleaner.Optimizer.Cpu.UndervoltStartupState> ReadAsync(CancellationToken ct) => throw new InvalidOperationException();
+
+        public Task RegisterAsync(int millivolts, CancellationToken ct) => throw new InvalidOperationException();
+
+        public Task UnregisterAsync(CancellationToken ct) => throw new InvalidOperationException();
     }
 
     private sealed class NoRestorePoints : IRestorePointService

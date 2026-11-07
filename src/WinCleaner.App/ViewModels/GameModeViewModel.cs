@@ -8,8 +8,9 @@ using WinCleaner.Optimizer.Fans;
 namespace WinCleaner.App.ViewModels;
 
 /// <summary>
-/// 게임 모드 화면. 게임할 때 쓰는 것을 한곳에 모았다: 전원 관리 옵션 전환, 원클릭 메모리 정리, CPU 온도·팬, 터보 부스트 제한.
-/// 무거운 작업은 백그라운드에서 하고, 팬 상태는 화면이 보이는 동안에만 2초마다 읽는다.
+/// 게임 모드 화면. 게임할 때 쓰는 것을 한곳에 모았다: 전원 관리 옵션 전환, 원클릭 메모리 정리, CPU 온도·팬, 팬 속도 조절, 터보 부스트 제한.
+/// 무거운 작업은 백그라운드에서 한다. 팬 상태는 화면이 보이는 동안 2초마다 읽고,
+/// 사용자 지정 팬 속도가 걸려 있으면 안전장치가 돌도록 다른 화면에 있어도 계속 읽는다.
 /// </summary>
 public partial class GameModeViewModel : ObservableObject
 {
@@ -28,7 +29,8 @@ public partial class GameModeViewModel : ObservableObject
     private readonly QuickOptimizeRunner _quick;
     private readonly IFanMonitor _fans;
     private readonly bool _isElevated;
-    private CancellationTokenSource? _fanRefresh;
+    private Task? _fanLoop;
+    private bool _isVisible;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsIdle))]
@@ -56,17 +58,20 @@ public partial class GameModeViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FanStatusText), nameof(HasFanReading), nameof(HasTemperature), nameof(CpuTemperatureText),
-        nameof(FanSpeedText), nameof(FanRpmText), nameof(IsWarm), nameof(IsOverheating), nameof(TemperatureAdvice))]
+        nameof(FanSpeedText), nameof(FanRpmText), nameof(GpuFanSpeedText), nameof(GpuFanRpmText), nameof(HasGpuFan),
+        nameof(IsWarm), nameof(IsOverheating), nameof(TemperatureAdvice))]
     private FanReading? _fanReading;
 
-    public GameModeViewModel(TweakRunner runner, IPowerSchemes power, QuickOptimizeRunner quick, IFanMonitor fans, ITweak turbo,
-        bool isElevated)
+    public GameModeViewModel(TweakRunner runner, IPowerSchemes power, QuickOptimizeRunner quick, IFanMonitor fans,
+        FanGuard fanGuard, FanModeStore fanModes, ITweak turbo, UndervoltViewModel undervolt, bool isElevated)
     {
         _runner = runner;
         _power = power;
         _quick = quick;
         _fans = fans;
         _isElevated = isElevated;
+        Fans = new FanControlViewModel(fanGuard, fanModes, isElevated);
+        Undervolt = undervolt;
         Turbo = new TweakItemViewModel(turbo, isElevated);
         Turbo.PropertyChanged += (_, e) =>
         {
@@ -83,6 +88,12 @@ public partial class GameModeViewModel : ObservableObject
 
     /// <summary>터보 부스트 제한. 최적화 화면의 같은 항목과 기록을 함께 쓴다.</summary>
     public TweakItemViewModel Turbo { get; }
+
+    /// <summary>팬 속도 조절과 사용자 지정 모드.</summary>
+    public FanControlViewModel Fans { get; }
+
+    /// <summary>CPU 전압 낮추기(언더볼팅).</summary>
+    public UndervoltViewModel Undervolt { get; }
 
     public bool HasFanReading => FanReading is not null;
 
@@ -101,6 +112,17 @@ public partial class GameModeViewModel : ObservableObject
     public string FanSpeedText => FanReading?.FanPercent is { } percent ? $"{percent}%" : "–";
 
     public string FanRpmText => FanReading?.FanRpm is { } rpm ? $"약 {rpm:N0} RPM" : "";
+
+    public bool HasGpuFan => FanReading?.HasGpuFan == true;
+
+    public string GpuFanSpeedText => FanReading?.GpuFanPercent is { } percent ? $"{percent}%" : "–";
+
+    public string GpuFanRpmText => FanReading switch
+    {
+        { GpuFanRpm: { } rpm } => $"약 {rpm:N0} RPM",
+        { HasGpuFan: false } => "감지 안 됨 (팬 1개 기기일 수 있음)",
+        _ => "",
+    };
 
     public bool IsOverheating => FanReading?.CpuTemperature >= HotTemperature;
 
@@ -129,18 +151,16 @@ public partial class GameModeViewModel : ObservableObject
     /// <summary>화면에 들어오면 상태를 읽고 팬 정보를 주기적으로 읽기 시작한다.</summary>
     public void Activate()
     {
-        Deactivate();
+        _isVisible = true;
         RefreshPower();
         _ = Turbo.RefreshAsync();
-        _fanRefresh = new CancellationTokenSource();
-        _ = RefreshFansAsync(_fanRefresh.Token);
+        Undervolt.RefreshCommand.Execute(null);
+        if (_fanLoop is not { IsCompleted: false })
+            _fanLoop = RefreshFansAsync();
     }
 
-    public void Deactivate()
-    {
-        _fanRefresh?.Cancel();
-        _fanRefresh = null;
-    }
+    /// <summary>화면에서 나간다. 사용자 지정 팬 속도가 걸려 있지 않으면 팬 정보 읽기를 멈춘다.</summary>
+    public void Deactivate() => _isVisible = false;
 
     [RelayCommand]
     private async Task TurnOnAsync()
@@ -278,28 +298,19 @@ public partial class GameModeViewModel : ObservableObject
         OnPropertyChanged(nameof(GameModeText));
     }
 
-    private async Task RefreshFansAsync(CancellationToken ct)
+    private async Task RefreshFansAsync()
     {
         using var timer = new PeriodicTimer(FanRefreshInterval);
         do
         {
-            FanReading = await Task.Run(_fans.Read, CancellationToken.None);
-            // 지원하지 않거나 권한이 없으면 계속 물어볼 필요가 없다.
-            if (FanReading is null)
+            FanReading = await Task.Run(_fans.Read);
+            await Fans.OnReadingAsync(FanReading);
+
+            // 사용자 지정 팬 속도가 걸려 있으면 다른 화면에 있어도 안전장치가 돌아야 한다.
+            // 그렇지 않으면 화면을 떠났거나, 지원하지 않거나 권한이 없을 때 그만 읽는다.
+            if (!Fans.IsManual && (!_isVisible || FanReading is null))
                 return;
         }
-        while (await NextTickAsync(timer, ct));
-    }
-
-    private static async Task<bool> NextTickAsync(PeriodicTimer timer, CancellationToken ct)
-    {
-        try
-        {
-            return await timer.WaitForNextTickAsync(ct);
-        }
-        catch (OperationCanceledException)
-        {
-            return false;
-        }
+        while (await timer.WaitForNextTickAsync());
     }
 }
