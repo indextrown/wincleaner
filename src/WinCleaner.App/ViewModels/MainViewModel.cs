@@ -10,6 +10,7 @@ using WinCleaner.Optimizer;
 using WinCleaner.Optimizer.Cpu;
 using WinCleaner.Optimizer.Drives;
 using WinCleaner.Optimizer.Fans;
+using WinCleaner.Optimizer.Monitoring;
 using WinCleaner.Optimizer.Programs;
 using WinCleaner.Optimizer.Startup;
 using WinCleaner.Safety;
@@ -53,6 +54,7 @@ public partial class MainViewModel : ObservableObject
         var overlay = CreateOverlay(memory, isElevated);
         var gameMode = new GameModeViewModel(runner, powerSchemes, quick, new ClevoFanMonitor(), fanGuard,
             new FanModeStore(FanModeStore.DefaultPath), turbo, undervolt, overlay, isElevated);
+        overlay.StatusProvider = gameMode.DescribeForOverlay;
         // 앱이 어떻게 끝나든 사용자 지정 팬 속도를 노트북 자동 제어로 되돌린다.
         AppDomain.CurrentDomain.ProcessExit += (_, _) => gameMode.Fans.Release();
         AppDomain.CurrentDomain.UnhandledException += (_, _) => gameMode.Fans.Release();
@@ -131,26 +133,26 @@ public partial class MainViewModel : ObservableObject
     // 오버레이 창은 처음 보일 때 만든다. 이 생성자는 주 창을 만드는 도중에 불려서, 여기서 창을 만들면 순서가 꼬일 수 있다.
     private OverlayViewModel CreateOverlay(IMemoryService memory, bool isElevated)
     {
-        ICpuMonitor? cpu;
+        ISystemMonitor? monitor;
         try
         {
-            cpu = new PdhCpuMonitor();
+            monitor = new PdhSystemMonitor();
         }
         catch (InvalidOperationException)
         {
-            cpu = null;
+            monitor = null;
         }
 
         OverlayWindow? window = null;
         OverlayViewModel? overlay = null;
-        overlay = new OverlayViewModel(new OverlaySampler(cpu, memory, new ClevoFanMonitor(), isElevated), show =>
+        overlay = new OverlayViewModel(new OverlaySampler(monitor, memory, new ClevoFanMonitor(), isElevated), show =>
         {
             window ??= new OverlayWindow { DataContext = overlay };
             if (show)
                 window.Show();
             else
                 window.Hide();
-        });
+        }, new OverlaySettingsStore(OverlaySettingsStore.DefaultPath));
 
         _hotkey = new GlobalHotkey(GlobalHotkey.ModControl | GlobalHotkey.ModShift, GlobalHotkey.KeyF10, () => overlay.ToggleCommand.Execute(null));
         overlay.SetHotkeyAvailable(_hotkey.IsRegistered);

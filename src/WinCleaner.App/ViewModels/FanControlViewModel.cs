@@ -86,6 +86,9 @@ public partial class FanControlViewModel : ObservableObject
 
     public int MinPercent => FanMode.MinPercent;
 
+    /// <summary>걸려 있는 사용자 지정 모드 이름. 자동 제어면 null.</summary>
+    public string? ManualModeName => _guard.Mode?.Name;
+
     public bool CanControl => _isElevated && IsAvailable && !IsBusy;
 
     public bool CanAdjust => SelectedMode?.CanAdjust == true;

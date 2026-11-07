@@ -302,6 +302,18 @@ public sealed class GameModeViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Overlay_status_line_describes_current_settings()
+    {
+        _vm.Activate();
+        Assert.Equal("", _vm.DescribeForOverlay());
+
+        await _vm.TurnOnCommand.ExecuteAsync(null);
+        await _vm.ToggleTurboCommand.ExecuteAsync(null);
+
+        Assert.Equal("게임 모드 · 터보 제한", _vm.DescribeForOverlay());
+    }
+
+    [Fact]
     public async Task Turbo_limit_toggles_on_and_back_to_original_values()
     {
         _vm.Activate();

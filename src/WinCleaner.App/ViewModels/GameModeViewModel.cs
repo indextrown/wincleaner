@@ -99,6 +99,28 @@ public partial class GameModeViewModel : ObservableObject
     /// <summary>게임 중 성능 표시(오버레이).</summary>
     public OverlayViewModel Overlay { get; }
 
+    /// <summary>오버레이 "상태" 줄. 예: "게임 모드 · 팬 최대 · 전압 −125mV · 터보 제한".</summary>
+    public string DescribeForOverlay()
+    {
+        var parts = new List<string>();
+        if (IsGameModeOn)
+            parts.Add("게임 모드");
+        if (Fans.IsAvailable)
+        {
+            parts.Add(Fans.State switch
+            {
+                FanControlState.Protecting => "팬 과열 보호",
+                FanControlState.Manual => $"팬 {Fans.ManualModeName}",
+                _ => "팬 자동",
+            });
+        }
+        if (Undervolt.ShortStatus is { } voltage)
+            parts.Add(voltage);
+        if (Turbo.IsApplied)
+            parts.Add("터보 제한");
+        return string.Join(" · ", parts);
+    }
+
     public bool HasFanReading => FanReading is not null;
 
     public string FanStatusText => FanReading switch

@@ -45,18 +45,97 @@
 
             <!-- 게임 중 성능 표시 (오버레이) -->
             <Border Style="{StaticResource Card}" Margin="0,12,0,0" DataContext="{Binding Overlay}">
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="{Binding ToggleText}" MinWidth="128" VerticalAlignment="Center"
-                            Command="{Binding ToggleCommand}" Style="{StaticResource PrimaryButton}"
-                            AutomationProperties.AutomationId="OverlayToggleButton" />
-                    <StackPanel Margin="0,0,16,0">
-                        <TextBlock Text="게임 중 성능 표시 (오버레이)" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="{Binding HotkeyStatusText}" FontSize="13" Margin="0,6,0,0" Foreground="{StaticResource HintBrush}" TextWrapping="Wrap"
-                                   AutomationProperties.AutomationId="OverlayHotkeyText" />
-                        <TextBlock Style="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"
-                                   Text="화면 오른쪽 위에 CPU 사용률·속도·온도, 메모리 사용량, 팬 회전 수를 1초마다 보여 줍니다. 게임에 끼어들지 않는 별도 창이라 롤의 안티치트(Vanguard)와 부딪히지 않습니다. 그 대신 게임이 '전체 창 모드(테두리 없음)'일 때만 위에 보입니다. 롤은 설정 → 비디오 → 창 모드에서 '전체 창 모드'를 고르세요. WinCleaner를 켜 두어야 하고, 최소화해도 됩니다." />
-                    </StackPanel>
-                </DockPanel>
+                <StackPanel>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="{Binding ToggleText}" MinWidth="128" VerticalAlignment="Center"
+                                Command="{Binding ToggleCommand}" Style="{StaticResource PrimaryButton}"
+                                AutomationProperties.AutomationId="OverlayToggleButton" />
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="게임 중 성능 표시 (오버레이)" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="{Binding HotkeyStatusText}" FontSize="13" Margin="0,6,0,0" Foreground="{StaticResource HintBrush}" TextWrapping="Wrap"
+                                       AutomationProperties.AutomationId="OverlayHotkeyText" />
+                            <TextBlock Style="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"
+                                       Text="화면 구석에 CPU·GPU·메모리·온도 등을 1초마다 보여 줍니다. 게임에 끼어들지 않는 별도 창이라 롤의 안티치트(Vanguard)와 부딪히지 않습니다. 그 대신 게임이 '전체 창 모드(테두리 없음)'일 때만 위에 보입니다. 롤은 설정 → 비디오 → 창 모드에서 '전체 창 모드'를 고르세요. WinCleaner를 켜 두어야 하고, 최소화해도 됩니다." />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Expander Header="오버레이 설정 (보일 항목 · 위치 · 크기)" Margin="0,12,0,0" FontSize="13" IsExpanded="True"
+                              Foreground="{StaticResource TextPrimaryBrush}" AutomationProperties.AutomationId="OverlaySettings">
+                        <StackPanel Margin="4,10,0,0">
+                            <TextBlock Text="보일 항목" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <WrapPanel Margin="0,6,0,0">
+                                <WrapPanel.Resources>
+                                    <Style TargetType="CheckBox">
+                                        <Setter Property="Width" Value="210" />
+                                        <Setter Property="Margin" Value="0,0,0,8" />
+                                        <Setter Property="FontSize" Value="13" />
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                    </Style>
+                                </WrapPanel.Resources>
+                                <CheckBox Content="시계" IsChecked="{Binding ShowClock}" />
+                                <CheckBox Content="CPU 사용률·속도" IsChecked="{Binding ShowCpu}" />
+                                <CheckBox Content="CPU 온도" IsChecked="{Binding ShowTemperature}" />
+                                <CheckBox Content="열 때문에 느려지는 중 표시" IsChecked="{Binding ShowThrottle}" />
+                                <CheckBox Content="GPU 사용률·온도·속도" IsChecked="{Binding ShowGpu}" />
+                                <CheckBox Content="메모리" IsChecked="{Binding ShowMemory}" />
+                                <CheckBox Content="팬 회전 수" IsChecked="{Binding ShowFan}" />
+                                <CheckBox Content="지금 걸린 설정 (팬·전압 등)" IsChecked="{Binding ShowStatus}" />
+                                <CheckBox Content="많이 쓰는 프로그램" IsChecked="{Binding ShowTopProcesses}" />
+                                <CheckBox Content="디스크·네트워크 속도" IsChecked="{Binding ShowDiskNetwork}" />
+                            </WrapPanel>
+
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="*" MaxWidth="360" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="위치" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding PositionOptions}" SelectedValuePath="Key" DisplayMemberPath="Value"
+                                          SelectedValue="{Binding Position}" Height="30" VerticalContentAlignment="Center"
+                                          AutomationProperties.AutomationId="OverlayPosition" />
+
+                                <TextBlock Grid.Row="1" Text="가로 여백" VerticalAlignment="Center" Margin="0,10,0,0" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <Slider Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" Minimum="0" Maximum="600" TickFrequency="4" IsSnapToTickEnabled="True"
+                                        Value="{Binding MarginX}" AutomationProperties.Name="오버레이 가로 여백" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding MarginX, StringFormat={}{0}px}" Margin="10,10,0,0" MinWidth="48"
+                                           VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}" />
+
+                                <TextBlock Grid.Row="2" Text="세로 여백" VerticalAlignment="Center" Margin="0,10,0,0" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <Slider Grid.Row="2" Grid.Column="1" Margin="0,10,0,0" Minimum="0" Maximum="600" TickFrequency="4" IsSnapToTickEnabled="True"
+                                        Value="{Binding MarginY}" AutomationProperties.Name="오버레이 세로 여백" />
+                                <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding MarginY, StringFormat={}{0}px}" Margin="10,10,0,0" MinWidth="48"
+                                           VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}" />
+
+                                <TextBlock Grid.Row="3" Text="크기" VerticalAlignment="Center" Margin="0,10,0,0" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <ComboBox Grid.Row="3" Grid.Column="1" Margin="0,10,0,0" ItemsSource="{Binding ScaleOptions}" SelectedValuePath="Key"
+                                          DisplayMemberPath="Value" SelectedValue="{Binding Scale}" Height="30" VerticalContentAlignment="Center"
+                                          AutomationProperties.AutomationId="OverlayScale" />
+
+                                <TextBlock Grid.Row="4" Text="배경 진하기" VerticalAlignment="Center" Margin="0,10,0,0" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <Slider Grid.Row="4" Grid.Column="1" Margin="0,10,0,0" Minimum="0.1" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                                        Value="{Binding BackgroundOpacity}" AutomationProperties.Name="오버레이 배경 진하기" />
+                                <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding BackgroundOpacity, StringFormat={}{0:P0}}" Margin="10,10,0,0"
+                                           VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}" />
+                            </Grid>
+
+                            <DockPanel Margin="0,12,0,0">
+                                <Button DockPanel.Dock="Right" Content="기본값으로" Command="{Binding ResetSettingsCommand}"
+                                        Style="{StaticResource SecondaryButton}" AutomationProperties.AutomationId="OverlayResetButton" />
+                                <TextBlock Style="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"
+                                           Text="바꾸면 바로 반영되고 저장됩니다. 롤은 오른쪽 위에 FPS·핑·KDA가 있으니, 가리면 위치를 '왼쪽 위'로 바꾸거나 세로 여백을 늘리세요. 롤 안에서 Ctrl+F를 누르면 FPS와 핑도 볼 수 있습니다. GPU 온도는 그래픽카드가 일하고 있을 때만 나옵니다(쉬고 있을 때 깨우지 않으려고)." />
+                            </DockPanel>
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
             </Border>
 
             <!-- CPU 온도·팬 -->

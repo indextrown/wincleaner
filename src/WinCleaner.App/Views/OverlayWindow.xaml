@@ -6,19 +6,16 @@
         Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False"
         ResizeMode="NoResize" SizeToContent="WidthAndHeight"
         FontFamily="{StaticResource UiFont}">
-    <Border Background="#B8101418" CornerRadius="8" Padding="12,8" BorderBrush="#40FFFFFF" BorderThickness="1">
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid.Resources>
+    <Border CornerRadius="8" Padding="12,8" BorderBrush="#40FFFFFF" BorderThickness="1">
+        <Border.Background>
+            <SolidColorBrush Color="#101418" Opacity="{Binding BackgroundOpacity}" />
+        </Border.Background>
+        <Border.LayoutTransform>
+            <ScaleTransform ScaleX="{Binding Scale}" ScaleY="{Binding Scale}" />
+        </Border.LayoutTransform>
+
+        <StackPanel Grid.IsSharedSizeScope="True">
+            <StackPanel.Resources>
                 <Style x:Key="Label" TargetType="TextBlock">
                     <Setter Property="Foreground" Value="#9FB0C8" />
                     <Setter Property="FontSize" Value="13" />
@@ -33,37 +30,125 @@
                     <Setter Property="Margin" Value="0,1,10,1" />
                     <Setter Property="VerticalAlignment" Value="Center" />
                 </Style>
-            </Grid.Resources>
+                <Style x:Key="Detail" TargetType="TextBlock" BasedOn="{StaticResource Value}">
+                    <Setter Property="FontSize" Value="13" />
+                    <Setter Property="Foreground" Value="#DCE3EE" />
+                    <Setter Property="Margin" Value="0,1,0,1" />
+                </Style>
+            </StackPanel.Resources>
 
-            <TextBlock Text="CPU" Style="{StaticResource Label}" />
-            <TextBlock Grid.Column="1" Text="{Binding CpuText}" Style="{StaticResource Value}" MinWidth="44" />
-            <StackPanel Grid.Column="2" Orientation="Horizontal">
-                <TextBlock Text="{Binding ClockText}" Style="{StaticResource Value}" />
-                <TextBlock Text="{Binding TemperatureText}" FontSize="15" FontWeight="SemiBold" Margin="0,1,0,1" VerticalAlignment="Center">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="#6EE7A0" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsWarm}" Value="True">
-                                    <Setter Property="Foreground" Value="#FFD166" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding IsHot}" Value="True">
-                                    <Setter Property="Foreground" Value="#FF6B6B" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-            </StackPanel>
+            <!-- 시계 -->
+            <TextBlock Text="{Binding TimeText}" Style="{StaticResource Value}" Margin="0,0,0,2"
+                       Visibility="{Binding IsClockRowVisible, Converter={StaticResource BoolToVisibility}}" />
 
-            <TextBlock Grid.Row="1" Text="RAM" Style="{StaticResource Label}" />
-            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MemoryPercentText}" Style="{StaticResource Value}" />
-            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding MemoryText}" Style="{StaticResource Value}" Margin="0,1,0,1" />
+            <!-- CPU -->
+            <Grid Visibility="{Binding IsCpuRowVisible, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition SharedSizeGroup="Label" />
+                    <ColumnDefinition SharedSizeGroup="Main" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="CPU" Style="{StaticResource Label}" />
+                <TextBlock Grid.Column="1" Text="{Binding CpuText}" Style="{StaticResource Value}" MinWidth="40"
+                           Visibility="{Binding ShowCpu, Converter={StaticResource BoolToVisibility}}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <TextBlock Text="{Binding CpuSpeedText}" Style="{StaticResource Value}"
+                               Visibility="{Binding ShowCpu, Converter={StaticResource BoolToVisibility}}" />
+                    <TextBlock Text="{Binding TemperatureText}" FontSize="15" FontWeight="SemiBold" Margin="0,1,0,1" VerticalAlignment="Center"
+                               Visibility="{Binding IsTemperatureVisible, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#6EE7A0" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsWarm}" Value="True">
+                                        <Setter Property="Foreground" Value="#FFD166" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsHot}" Value="True">
+                                        <Setter Property="Foreground" Value="#FF6B6B" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Border Background="#D9E5484D" CornerRadius="4" Padding="5,0" Margin="8,0,0,0" VerticalAlignment="Center"
+                            Visibility="{Binding IsThrottleVisible, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="{Binding ThrottleText}" Foreground="White" FontSize="12" FontWeight="SemiBold" />
+                    </Border>
+                </StackPanel>
+            </Grid>
 
-            <TextBlock Grid.Row="2" Text="팬" Style="{StaticResource Label}"
-                       Visibility="{Binding HasFan, Converter={StaticResource BoolToVisibility}}" />
-            <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding FanText}" Style="{StaticResource Value}"
-                       Visibility="{Binding HasFan, Converter={StaticResource BoolToVisibility}}" />
-        </Grid>
+            <!-- GPU -->
+            <Grid Visibility="{Binding IsGpuRowVisible, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition SharedSizeGroup="Label" />
+                    <ColumnDefinition SharedSizeGroup="Main" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="GPU" Style="{StaticResource Label}" />
+                <TextBlock Grid.Column="1" Text="{Binding GpuText}" Style="{StaticResource Value}" />
+                <TextBlock Grid.Column="2" Text="{Binding GpuDetailText}" Style="{StaticResource Detail}" />
+            </Grid>
+
+            <!-- 메모리 -->
+            <Grid Visibility="{Binding IsMemoryRowVisible, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition SharedSizeGroup="Label" />
+                    <ColumnDefinition SharedSizeGroup="Main" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="RAM" Style="{StaticResource Label}" />
+                <TextBlock Grid.Column="1" Text="{Binding MemoryPercentText}" Style="{StaticResource Value}" />
+                <TextBlock Grid.Column="2" Text="{Binding MemoryText}" Style="{StaticResource Detail}" />
+            </Grid>
+
+            <!-- 팬 -->
+            <Grid Visibility="{Binding IsFanRowVisible, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition SharedSizeGroup="Label" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="팬" Style="{StaticResource Label}" />
+                <TextBlock Grid.Column="1" Text="{Binding FanText}" Style="{StaticResource Detail}" />
+            </Grid>
+
+            <!-- 디스크·네트워크 -->
+            <Grid Visibility="{Binding IsDiskNetworkRowVisible, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition SharedSizeGroup="Label" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="디스크" Style="{StaticResource Label}" />
+                <TextBlock Grid.Column="1" Text="{Binding DiskText}" Style="{StaticResource Detail}" />
+                <TextBlock Grid.Row="1" Text="네트워크" Style="{StaticResource Label}" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding NetworkText}" Style="{StaticResource Detail}" />
+            </Grid>
+
+            <!-- 많이 쓰는 프로그램 -->
+            <Grid Visibility="{Binding IsTopRowVisible, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition SharedSizeGroup="Label" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="많이 씀" Style="{StaticResource Label}" VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="{Binding TopCpuText}" Style="{StaticResource Detail}" />
+                    <TextBlock Text="{Binding TopMemoryText}" Style="{StaticResource Detail}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 지금 걸린 설정 -->
+            <Grid Visibility="{Binding IsStatusRowVisible, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition SharedSizeGroup="Label" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="상태" Style="{StaticResource Label}" />
+                <TextBlock Grid.Column="1" Text="{Binding StatusText}" Style="{StaticResource Detail}" />
+            </Grid>
+        </StackPanel>
     </Border>
 </Window>

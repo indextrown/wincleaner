@@ -62,6 +62,9 @@ public partial class UndervoltViewModel : ObservableObject
 
     public string MillivoltsText => Format(Millivolts);
 
+    /// <summary>오버레이 상태 줄에 보일 짧은 문구. 원래대로(0mV)거나 아직 읽지 않았으면 null.</summary>
+    public string? ShortStatus => Current is { IsDefault: false } current ? $"전압 {Format(current.CoreMillivolts)}" : null;
+
     public string CurrentText => Current switch
     {
         _ when !_undervolt.IsAvailable => "이 PC에는 인텔 튜닝 서비스(Control Center 2.0과 함께 설치됨)가 없어 쓸 수 없습니다.",

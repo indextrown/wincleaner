@@ -1,13 +1,17 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using WinCleaner.App.Services;
+using WinCleaner.App.ViewModels;
 
 namespace WinCleaner.App.Views;
 
 /// <summary>
-/// 화면 오른쪽 위에 떠 있는 오버레이 창. 클릭이 통과하고, 포커스를 빼앗지 않고, 작업 표시줄과 Alt+Tab에 나오지 않는다.
-/// 게임이 창을 덮어 올라오는 경우가 있어 보이는 동안 2초마다 맨 위로 다시 올린다.
+/// 화면 구석에 떠 있는 오버레이 창. 클릭이 통과하고, 포커스를 빼앗지 않고, 작업 표시줄과 Alt+Tab에 나오지 않는다.
+/// 위치와 여백은 설정을 따르고, 게임이 창을 덮어 올라오는 경우가 있어 보이는 동안 2초마다 맨 위로 다시 올린다.
+/// 전체 창 모드 게임은 작업 표시줄까지 덮으므로 작업 영역이 아니라 화면 전체를 기준으로 놓는다.
 /// </summary>
 public partial class OverlayWindow : Window
 {
@@ -21,20 +25,18 @@ public partial class OverlayWindow : Window
     private const uint SwpNoActivate = 0x0010;
     private static readonly IntPtr HwndTopmost = new(-1);
 
-    private const double ScreenMargin = 16;
-
     private readonly DispatcherTimer _keepOnTop = new() { Interval = TimeSpan.FromSeconds(2) };
 
     public OverlayWindow()
     {
         InitializeComponent();
         _keepOnTop.Tick += (_, _) => BringToTop();
-        SizeChanged += (_, _) => PlaceTopRight();
+        SizeChanged += (_, _) => Place();
         IsVisibleChanged += (_, _) =>
         {
             if (IsVisible)
             {
-                PlaceTopRight();
+                Place();
                 _keepOnTop.Start();
             }
             else
@@ -42,6 +44,30 @@ public partial class OverlayWindow : Window
                 _keepOnTop.Stop();
             }
         };
+        DataContextChanged += (_, e) =>
+        {
+            if (e.OldValue is INotifyPropertyChanged old)
+                old.PropertyChanged -= OnSettingChanged;
+            if (e.NewValue is INotifyPropertyChanged now)
+                now.PropertyChanged += OnSettingChanged;
+        };
+    }
+
+    /// <summary>화면 크기(w×h)에서 설정 위치·여백에 맞는 왼쪽 위 좌표.</summary>
+    public static Point PlaceOnScreen(OverlayPosition position, double marginX, double marginY, double width, double height,
+        double screenWidth, double screenHeight) => position switch
+    {
+        OverlayPosition.TopLeft => new Point(marginX, marginY),
+        OverlayPosition.TopCenter => new Point((screenWidth - width) / 2, marginY),
+        OverlayPosition.BottomLeft => new Point(marginX, screenHeight - height - marginY),
+        OverlayPosition.BottomRight => new Point(screenWidth - width - marginX, screenHeight - height - marginY),
+        _ => new Point(screenWidth - width - marginX, marginY),
+    };
+
+    private void OnSettingChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(OverlayViewModel.Position) or nameof(OverlayViewModel.MarginX) or nameof(OverlayViewModel.MarginY))
+            Place();
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -52,11 +78,14 @@ public partial class OverlayWindow : Window
         SetWindowLong(hwnd, GwlExStyle, style | WsExTransparent | WsExToolWindow | WsExLayered | WsExNoActivate);
     }
 
-    private void PlaceTopRight()
+    private void Place()
     {
-        var area = SystemParameters.WorkArea;
-        Left = area.Right - ActualWidth - ScreenMargin;
-        Top = area.Top + ScreenMargin;
+        if (DataContext is not OverlayViewModel settings || !IsVisible)
+            return;
+        var point = PlaceOnScreen(settings.Position, settings.MarginX, settings.MarginY, ActualWidth, ActualHeight,
+            SystemParameters.PrimaryScreenWidth, SystemParameters.PrimaryScreenHeight);
+        Left = point.X;
+        Top = point.Y;
     }
 
     private void BringToTop()
