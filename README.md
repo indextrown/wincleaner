@@ -30,6 +30,14 @@ Windows 10/11용 디스크 청소 · 용량 분석 · 시스템 최적화 도구
 
 ## 실행 방법
 
+한눈에 보기:
+
+| 하고 싶은 것 | 방법 |
+|---|---|
+| 이미 만든 EXE로 바로 실행 | `WinCleaner.exe`를 더블클릭하고 UAC 창에서 **예** ([3. 실행하기](#3-실행하기)) |
+| 소스를 받아 처음 실행 | .NET 10 SDK 설치 → 빌드 → 실행 ([1](#1-net-10-sdk-설치)~[3](#3-실행하기)) |
+| 파일 하나짜리 EXE 만들기 (바탕 화면에 두기, 다른 PC에 옮기기) | [5. EXE 만들기](#5-exe-만들기) |
+
 ### 1. .NET 10 SDK 설치
 
 이미 설치되어 있다면 건너뜁니다. 터미널에서 `dotnet --list-sdks`를 실행해 `10.0`으로 시작하는 줄이 있으면 됩니다.
@@ -62,7 +70,7 @@ dotnet build WinCleaner.slnx
 
 ### 3. 실행하기
 
-아래 파일을 더블클릭합니다.
+빌드한 뒤 아래 파일을 더블클릭합니다. [5. EXE 만들기](#5-exe-만들기)로 만든 `WinCleaner.exe`(바탕 화면 등)도 같은 방법으로 실행합니다.
 
 ```
 src\WinCleaner.App\bin\Debug\net10.0-windows\WinCleaner.exe
@@ -93,6 +101,40 @@ dotnet test WinCleaner.slnx
 ```
 
 테스트는 임시 폴더 안에 만든 가짜 파일과 테스트용 대역으로 동작합니다. 실제 PC의 파일이나 설정은 읽기만 하고 바꾸지 않습니다.
+
+### 5. EXE 만들기
+
+빌드 결과 폴더(`bin\Debug\...`)에는 DLL이 여러 개 있어 exe만 따로 옮기면 실행되지 않습니다. 아래 명령은 **파일 하나짜리 `WinCleaner.exe`**를 만듭니다. 이 파일만 바탕 화면이나 다른 폴더, 다른 PC로 옮겨 쓰면 됩니다. 청소 규칙은 exe 안에 들어 있고, 설정과 기록은 `%LOCALAPPDATA%\WinCleaner`에 저장되므로 exe를 어디에 두어도 됩니다.
+
+저장소 폴더(`wincleaner`)에서 실행합니다. 두 가지 중 하나를 고르세요.
+
+**① 작은 exe (약 1MB) — .NET 10 Desktop Runtime이 설치된 PC용**
+
+이 PC처럼 .NET이 PC 전체에 설치되어 있으면 이것으로 충분합니다.
+
+```powershell
+dotnet publish src\WinCleaner.App -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:DebugType=None -o publish
+```
+
+**② 큰 exe (수십 MB) — .NET이 없는 PC에서도 실행**
+
+.NET을 exe 안에 함께 넣습니다. 다른 사람 PC에 옮길 때 씁니다.
+
+```powershell
+dotnet publish src\WinCleaner.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -o publish
+```
+
+만들어진 파일은 `publish\WinCleaner.exe`입니다. `publish` 폴더는 git에 올라가지 않습니다.
+
+**바탕 화면에 두기**
+
+```powershell
+Copy-Item .\publish\WinCleaner.exe ([Environment]::GetFolderPath('Desktop'))
+```
+
+이제 바탕 화면의 `WinCleaner.exe`를 더블클릭하고 UAC 창에서 **예**를 누르면 됩니다. 코드를 고친 뒤에는 위 명령을 다시 실행해 exe를 새로 만들고 바탕 화면 파일도 바꿔 넣으세요. 실행 중인 WinCleaner는 먼저 닫아야 덮어쓸 수 있습니다.
+
+> CPU 전압 자동 적용(작업 스케줄러 작업)은 exe 위치와 상관없이 동작합니다. exe를 옮기거나 지워도 자동 적용은 그대로이고, 끄려면 게임 모드 화면에서 체크를 해제하세요.
 
 ## 문제 해결
 
